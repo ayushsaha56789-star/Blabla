@@ -1,0 +1,88 @@
+<!-- Hero -->
+<section class="relative overflow-hidden">
+  <div aria-hidden="true" class="pointer-events-none absolute -top-48 -left-40 h-[30rem] w-[30rem] rounded-full bg-brand-300/40 blur-3xl dark:bg-brand-500/15"></div>
+  <div aria-hidden="true" class="pointer-events-none absolute -top-24 -right-48 h-[26rem] w-[26rem] rounded-full bg-accent-300/40 blur-3xl dark:bg-accent-500/10"></div>
+
+  <div class="container-page relative pt-12 pb-12 sm:pt-20 lg:pb-16">
+    <div class="mx-auto max-w-3xl text-center motion-safe:animate-fade-up">
+      <span class="badge badge-success mb-5 px-3 py-1.5 text-[0.8rem]">
+        <app-icon name="sparkles" [size]="14" /> Carpooling made for India
+      </span>
+      <h1 class="text-4xl font-extrabold tracking-tight text-balance sm:text-6xl">
+        Going somewhere?
+        <span class="bg-linear-to-r from-brand-600 to-accent-500 bg-clip-text text-transparent dark:from-brand-400 dark:to-accent-400">Go together.</span>
+      </h1>
+      <p class="mx-auto mt-5 max-w-xl text-lg text-pretty text-slate-600 dark:text-slate-400">
+        Find a seat in a car heading your way, or fill your empty seats and split the fuel cost.
+        Verified members, ladies-only rides, zero hassle.
+      </p>
+    </div>
+
+    <app-ride-search-form class="mx-auto mt-10 max-w-5xl motion-safe:animate-fade-up [animation-delay:120ms]" />
+
+    <div class="mx-auto mt-6 flex max-w-4xl flex-wrap items-center justify-center gap-2 motion-safe:animate-fade-up [animation-delay:200ms]">
+      <span class="mr-1 text-sm font-medium text-slate-500 dark:text-slate-400">Popular:</span>
+      @for (r of routes.slice(0, 6); track $index) {
+        <a class="chip py-1.5 text-[0.8rem]" routerLink="/search" [queryParams]="{ from: r[0], to: r[1] }">
+          {{ r[0] }} <app-icon name="arrowRight" [size]="13" class="text-slate-400" /> {{ r[1] }}
+        </a>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- Why SaathChalo -->
+<section class="container-page py-14 sm:py-16" aria-labelledby="why-heading">
+  <div class="max-w-2xl">
+    <h2 id="why-heading" class="text-3xl font-extrabold tracking-tight sm:text-4xl">Why people love SaathChalo</h2>
+    <p class="mt-3 text-slate-600 dark:text-slate-400">Long trips are better shared. Here is what you get.</p>
+  </div>
+  <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    @for (b of benefits; track b.title) {
+      <article class="card p-6 transition duration-300 hover:-translate-y-1 hover:shadow-lg">
+        <span class="inline-flex rounded-2xl p-3" [class]="b.tint"><app-icon [name]="b.icon" [size]="24" /></span>
+        <h3 class="mt-5 text-lg font-bold">{{ b.title }}</h3>
+        <p class="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{{ b.text }}</p>
+      </article>
+    }
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="bg-white py-16 sm:py-20 dark:bg-slate-900/40" aria-labelledby="how-heading">
+  <div class="container-page">
+    <h2 id="how-heading" class="text-center text-3xl font-extrabold tracking-tight sm:text-4xl">How it works</h2>
+    <ol class="mt-12 grid gap-8 md:grid-cols-3">
+      @for (s of steps; track s.title; let i = $index) {
+        <li class="relative text-center">
+          <span class="relative mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-brand-600 text-white shadow-lg shadow-brand-600/30 dark:bg-brand-500 dark:text-brand-950">
+            <app-icon [name]="s.icon" [size]="28" />
+            <span class="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-accent-500 text-xs font-bold text-white ring-4 ring-white dark:ring-slate-950">{{ i + 1 }}</span>
+          </span>
+          <h3 class="mt-5 text-lg font-bold">{{ s.title }}</h3>
+          <p class="mx-auto mt-2 max-w-xs text-sm text-slate-600 dark:text-slate-400">{{ s.text }}</p>
+        </li>
+      }
+    </ol>
+  </div>
+</section>
+
+<!-- Driver call to action -->
+<section class="container-page py-16 sm:py-20">
+  <div class="relative overflow-hidden rounded-[2rem] bg-linear-to-br from-brand-600 to-brand-800 px-6 py-12 text-white shadow-2xl shadow-brand-700/20 sm:px-12 sm:py-16">
+    <div aria-hidden="true" class="absolute -right-16 -bottom-24 h-72 w-72 rounded-full bg-accent-400/30 blur-3xl"></div>
+    <div class="relative grid items-center gap-8 lg:grid-cols-[1.4fr_1fr]">
+      <div>
+        <h2 class="text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">Driving with empty seats? Turn them into fuel money.</h2>
+        <p class="mt-4 max-w-xl text-brand-50/90">
+          Publish your ride in a minute. Choose who travels with you, set your own price, and split the cost of every trip.
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-3 lg:justify-end">
+        <a routerLink="/publish" class="btn bg-white px-6 py-4 text-base text-brand-800 shadow-lg hover:bg-brand-50">
+          <app-icon name="plusCircle" /> Offer a ride
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

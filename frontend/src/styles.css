@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+/* Dark mode follows the `dark` class on <html>, set by ThemeService (and the boot script in index.html). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Brand: fresh green — sharing rides is the greener way to travel. */
+  --color-brand-50: oklch(97.9% 0.021 166.1);
+  --color-brand-100: oklch(95% 0.052 163.1);
+  --color-brand-200: oklch(90.5% 0.093 164.2);
+  --color-brand-300: oklch(84.5% 0.143 165);
+  --color-brand-400: oklch(76.5% 0.177 163.2);
+  --color-brand-500: oklch(69.6% 0.17 162.5);
+  --color-brand-600: oklch(59.6% 0.145 163.2);
+  --color-brand-700: oklch(50.8% 0.118 165.6);
+  --color-brand-800: oklch(43.2% 0.095 166.9);
+  --color-brand-900: oklch(37.8% 0.077 168.9);
+  --color-brand-950: oklch(26.2% 0.051 172.6);
+
+  /* Accent: warm saffron. */
+  --color-accent-100: oklch(95.4% 0.038 75.2);
+  --color-accent-300: oklch(83.7% 0.128 66.3);
+  --color-accent-400: oklch(75% 0.183 55.9);
+  --color-accent-500: oklch(70.5% 0.213 47.6);
+  --color-accent-600: oklch(64.6% 0.222 41.1);
+
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-pop: pop 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: none; }
+  }
+}
+
+@layer base {
+  :root { color-scheme: light; }
+  :root.dark { color-scheme: dark; }
+
+  html {
+    @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+    -webkit-tap-highlight-color: transparent;
+  }
+  ::selection { @apply bg-brand-200 text-brand-950; }
+  button:not(:disabled), [role="button"] { cursor: pointer; }
+}
+
+@layer components {
+  .container-page { @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8; }
+
+  .card {
+    @apply rounded-3xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5
+      dark:border-slate-800 dark:bg-slate-900 dark:shadow-none;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold
+      transition duration-150 select-none active:scale-[0.98]
+      focus-visible:ring-4 focus-visible:outline-none
+      disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-brand-600 text-white shadow-lg shadow-brand-600/25 hover:bg-brand-700 focus-visible:ring-brand-500/30
+      dark:bg-brand-500 dark:text-brand-950 dark:hover:bg-brand-400 dark:shadow-brand-500/10;
+  }
+  .btn-accent {
+    @apply bg-accent-500 text-white shadow-lg shadow-accent-500/25 hover:bg-accent-600 focus-visible:ring-accent-400/30;
+  }
+  .btn-secondary {
+    @apply border border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-slate-400/20
+      dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800;
+  }
+  .btn-ghost {
+    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-slate-400/20
+      dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
+  }
+  .btn-sm { @apply rounded-xl px-3.5 py-2; }
+  .btn-icon { @apply rounded-xl p-2.5; }
+
+  .label { @apply mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300; }
+  .hint { @apply mt-1.5 text-xs text-slate-500 dark:text-slate-400; }
+  .field-error { @apply mt-1.5 text-sm font-medium text-rose-600 dark:text-rose-400; }
+
+  .input {
+    @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 outline-none
+      transition placeholder:text-slate-400
+      focus:border-brand-500 focus:ring-4 focus:ring-brand-500/15
+      dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500
+      dark:focus:border-brand-400 dark:focus:ring-brand-400/15;
+  }
+  .input.ng-invalid.ng-touched { @apply border-rose-400 focus:ring-rose-500/15 dark:border-rose-500; }
+
+  /* Pill-shaped toggle buttons, e.g. preferences. */
+  .chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium
+      text-slate-700 transition hover:border-slate-300 active:scale-[0.97]
+      dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300;
+  }
+  .chip-on {
+    @apply border-brand-500 bg-brand-50 text-brand-800 dark:border-brand-400 dark:bg-brand-950 dark:text-brand-200;
+  }
+
+  /* Segmented control: a row of mutually exclusive options. */
+  .segmented { @apply grid gap-1 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800/70; }
+  .segment {
+    @apply flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition
+      hover:text-slate-900 dark:text-slate-400 dark:hover:text-white;
+  }
+  .segment-on { @apply bg-white text-slate-900 shadow-sm dark:bg-slate-950 dark:text-white; }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+  .badge-success { @apply bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300; }
+  .badge-muted { @apply bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400; }
+
+  .skeleton { @apply animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800; }
+}

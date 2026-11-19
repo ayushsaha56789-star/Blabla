@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SaathChalo — Share rides across India</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="SaathChalo connects drivers with empty seats and passengers going the same way. Share rides between Indian cities with verified members and split the cost.">
+  <meta name="theme-color" content="#059669">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <script>
+    // Apply the saved theme before the app starts, so dark mode never flashes white.
+    try {
+      var m = localStorage.getItem('sc.theme');
+      if (m === 'dark' || ((!m || m === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      }
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>

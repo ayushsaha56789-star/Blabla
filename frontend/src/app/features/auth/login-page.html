@@ -1,0 +1,83 @@
+<div class="container-page grid gap-10 py-8 sm:py-12 lg:min-h-[calc(100dvh-4rem)] lg:grid-cols-2 lg:items-center lg:py-16">
+  <!-- Brand panel (large screens) -->
+  <aside class="relative hidden overflow-hidden rounded-[2rem] bg-linear-to-br from-brand-600 via-brand-700 to-brand-900 p-10 text-white lg:block">
+    <div aria-hidden="true" class="absolute -top-20 -right-20 h-72 w-72 rounded-full bg-accent-400/30 blur-3xl"></div>
+    <div class="relative">
+      <app-logo [size]="40" [withText]="false" />
+      <h2 class="mt-10 text-4xl leading-tight font-extrabold tracking-tight">Your next trip<br />is better shared.</h2>
+      <ul class="mt-8 space-y-4 text-brand-50/90">
+        <li class="flex items-center gap-3"><app-icon name="shield" /> Verified members only</li>
+        <li class="flex items-center gap-3"><app-icon name="rupee" /> Split fuel and tolls, save money</li>
+        <li class="flex items-center gap-3"><app-icon name="woman" /> Ladies-only rides available</li>
+      </ul>
+    </div>
+  </aside>
+
+  <section class="mx-auto w-full max-w-md motion-safe:animate-fade-up">
+    @if (step() === 'phone') {
+      <h1 class="text-3xl font-extrabold tracking-tight">Log in or sign up</h1>
+      <p class="mt-2 text-slate-600 dark:text-slate-400">Enter your mobile number. We'll text you a 6-digit code — no password needed.</p>
+
+      <form class="mt-8" (submit)="sendCode($event)" novalidate>
+        <label for="phone" class="label">Mobile number</label>
+        <div class="flex gap-2">
+          <span class="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 px-4 font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+            <span aria-hidden="true">🇮🇳</span> +91
+          </span>
+          <input #phoneField id="phone" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="98765 43210"
+                 class="input text-lg font-semibold tracking-wide" maxlength="11" autofocus
+                 [value]="phone()" (input)="onPhoneInput(phoneField)" [attr.aria-invalid]="!!error()"
+                 aria-describedby="phone-help" />
+        </div>
+        @if (error()) {
+          <p class="field-error" role="alert">{{ error() }}</p>
+        } @else {
+          <p id="phone-help" class="hint">Used for login and so your co-travellers can reach you. Never shown publicly.</p>
+        }
+        <button type="submit" class="btn btn-primary mt-6 w-full py-4 text-base" [disabled]="busy() || !isValid(phone())">
+          @if (busy()) { <span class="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white"></span> Sending code… }
+          @else { Continue <app-icon name="arrowRight" [size]="18" /> }
+        </button>
+      </form>
+      <p class="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
+        By continuing, you confirm you are 18 or older and agree to travel respectfully with fellow members.
+      </p>
+    } @else {
+      <button type="button" class="btn btn-ghost btn-sm -ml-3 mb-4" (click)="changeNumber()">
+        <app-icon name="arrowLeft" [size]="18" /> Change number
+      </button>
+      <h1 class="text-3xl font-extrabold tracking-tight">Enter your code</h1>
+      <p class="mt-2 text-slate-600 dark:text-slate-400">
+        We sent a 6-digit code to <span class="font-semibold text-slate-900 dark:text-white">+91 {{ phone() }}</span>
+      </p>
+
+      @if (devCode()) {
+        <div class="mt-5 flex items-start gap-3 rounded-2xl border border-dashed border-accent-400 bg-accent-100/60 p-4 text-sm dark:bg-accent-600/10">
+          <app-icon name="info" class="text-accent-600" />
+          <p><span class="font-semibold">Developer mode:</span> no SMS is sent locally. Your code is
+            <button type="button" class="font-mono text-base font-bold tracking-widest underline decoration-dotted" (click)="code.set(devCode()!); verify()">{{ devCode() }}</button>
+          </p>
+        </div>
+      }
+
+      <app-otp-input class="mt-6" [(value)]="code" (completed)="verify()" [disabled]="busy()" [invalid]="!!error()" />
+      @if (error()) {
+        <p class="field-error" role="alert">{{ error() }}</p>
+      }
+
+      <button type="button" class="btn btn-primary mt-6 w-full py-4 text-base" (click)="verify()" [disabled]="busy() || code().length !== 6">
+        @if (busy()) { <span class="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white"></span> Checking… }
+        @else { Verify and continue }
+      </button>
+
+      <p class="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
+        Didn't get it?
+        @if (resendIn() > 0) {
+          <span>Resend in <span class="font-semibold tabular-nums">{{ formatCountdown(resendIn()) }}</span></span>
+        } @else {
+          <button type="button" class="font-semibold text-brand-700 hover:underline dark:text-brand-400" (click)="sendCode()" [disabled]="busy()">Resend code</button>
+        }
+      </p>
+    }
+  </section>
+</div>

@@ -1,0 +1,154 @@
+@if (auth.user(); as me) {
+  <div class="container-page max-w-4xl py-8 sm:py-12">
+    <!-- Header -->
+    <section class="card overflow-hidden motion-safe:animate-fade-up">
+      <div aria-hidden="true" class="h-24 bg-linear-to-r from-brand-500/25 via-brand-400/10 to-accent-400/25 sm:h-28"></div>
+      <div class="px-6 pb-6 sm:px-8">
+        <div class="-mt-14 flex items-end justify-between gap-3">
+          <div class="relative shrink-0">
+            <app-avatar [url]="me.avatarUrl" [name]="me.displayName" [size]="112" />
+            <label class="absolute right-0 bottom-0 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-brand-600 text-white shadow-lg ring-4 ring-white transition hover:bg-brand-700 dark:ring-slate-900"
+                   [class.pointer-events-none]="uploading()" title="Change photo">
+              @if (uploading()) {
+                <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+              } @else {
+                <app-icon name="camera" [size]="18" />
+              }
+              <span class="sr-only">Change profile photo</span>
+              <input #photo type="file" accept="image/*" class="sr-only" (change)="onPhotoChosen(photo)" />
+            </label>
+          </div>
+          <div class="flex flex-wrap justify-end gap-2 pb-1">
+            @if (me.avatarUrl) {
+              <button type="button" class="btn btn-ghost btn-sm" (click)="removePhoto()" [disabled]="uploading()">
+                <app-icon name="trash" [size]="16" /> Remove photo
+              </button>
+            }
+            <a [routerLink]="['/u', me.id]" class="btn btn-secondary btn-sm">See public profile</a>
+          </div>
+        </div>
+        <h1 class="mt-4 text-2xl font-extrabold tracking-tight sm:text-3xl">{{ me.displayName }}</h1>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Member since {{ me.memberSince | date: 'MMMM y' }} · <span class="whitespace-nowrap">{{ me.phone | phone }}</span></p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          @if (me.phoneVerified) {
+            <span class="badge badge-success"><app-icon name="checkCircle" [size]="14" /> Phone verified</span>
+          }
+          @if (me.idVerified) {
+            <span class="badge badge-success"><app-icon name="shield" [size]="14" /> ID verified</span>
+          } @else {
+            <span class="badge badge-muted"><app-icon name="shield" [size]="14" /> ID check coming soon</span>
+          }
+        </div>
+      </div>
+    </section>
+
+    @if (!me.profileComplete) {
+      <div class="mt-4 flex items-start gap-3 rounded-2xl border border-accent-300 bg-accent-100/60 p-4 text-sm dark:border-accent-600/40 dark:bg-accent-600/10">
+        <app-icon name="info" class="text-accent-600" />
+        <p>Add your <b>first name</b> and <b>gender</b> below to start offering and booking rides.</p>
+      </div>
+    }
+
+    <form class="mt-6 grid gap-6 lg:grid-cols-[1.4fr_1fr]" [formGroup]="form" (submit)="save($event)" novalidate>
+      <!-- About you -->
+      <section class="card space-y-5 p-6 sm:p-8" aria-labelledby="about-heading">
+        <h2 id="about-heading" class="text-lg font-bold">About you</h2>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label for="firstName" class="label">First name</label>
+            <input id="firstName" class="input" formControlName="firstName" autocomplete="given-name" />
+            @if ((form.controls.firstName.touched && form.controls.firstName.invalid) || serverErrors()['firstName']) {
+              <p class="field-error">{{ serverErrors()['firstName'] || 'Please enter your first name' }}</p>
+            }
+          </div>
+          <div>
+            <label for="lastName" class="label">Last name</label>
+            <input id="lastName" class="input" formControlName="lastName" autocomplete="family-name" />
+            @if (serverErrors()['lastName']) { <p class="field-error">{{ serverErrors()['lastName'] }}</p> }
+          </div>
+        </div>
+        <div>
+          <span class="label" id="gender-label">Gender</span>
+          <div class="segmented grid-cols-3" role="radiogroup" aria-labelledby="gender-label">
+            @for (g of genders; track g.value) {
+              <button type="button" role="radio" class="segment" [class.segment-on]="form.controls.gender.value === g.value"
+                      [attr.aria-checked]="form.controls.gender.value === g.value"
+                      (click)="form.controls.gender.setValue(g.value); form.controls.gender.markAsDirty()">{{ g.label }}</button>
+            }
+          </div>
+          @if (form.controls.gender.touched && form.controls.gender.invalid) {
+            <p class="field-error">Please choose an option</p>
+          }
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label for="email" class="label">Email <span class="font-normal text-slate-400">(optional)</span></label>
+            <input id="email" type="email" class="input" formControlName="email" autocomplete="email" placeholder="you@example.com" />
+            @if ((form.controls.email.touched && form.controls.email.invalid) || serverErrors()['email']) {
+              <p class="field-error">{{ serverErrors()['email'] || 'Please enter a valid email' }}</p>
+            }
+          </div>
+          <div>
+            <label for="dob" class="label">Date of birth</label>
+            <input id="dob" type="date" class="input" formControlName="dateOfBirth" />
+            @if (serverErrors()['dateOfBirth']) { <p class="field-error">{{ serverErrors()['dateOfBirth'] }}</p> }
+            @else { <p class="hint">Only your age is shown.</p> }
+          </div>
+        </div>
+        <div>
+          <label for="bio" class="label">About me</label>
+          <textarea id="bio" rows="4" class="input resize-none" formControlName="bio" maxlength="500"
+                    placeholder="E.g. Software engineer, travel Pune ↔ Mumbai most weekends. Love old Bollywood songs!"></textarea>
+          <p class="hint text-right tabular-nums">{{ form.controls.bio.value.length }}/500</p>
+        </div>
+      </section>
+
+      <!-- Preferences + actions -->
+      <div class="space-y-6">
+        <section class="card space-y-5 p-6 sm:p-8" aria-labelledby="prefs-heading">
+          <h2 id="prefs-heading" class="text-lg font-bold">Travel preferences</h2>
+          <div>
+            <span class="label" id="chat-label">In the car, I'm…</span>
+            <div class="segmented grid-cols-3" role="radiogroup" aria-labelledby="chat-label">
+              @for (o of chatOptions; track o.value) {
+                <button type="button" role="radio" class="segment flex-col gap-0.5 py-3" [class.segment-on]="form.controls.prefChat.value === o.value"
+                        [attr.aria-checked]="form.controls.prefChat.value === o.value"
+                        (click)="form.controls.prefChat.setValue(o.value); form.controls.prefChat.markAsDirty()">
+                  <span class="text-xl" aria-hidden="true">{{ o.emoji }}</span>{{ o.label }}
+                </button>
+              }
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            @for (t of toggles; track t.key) {
+              <button type="button" class="chip" [class.chip-on]="form.controls[t.key].value" [attr.aria-pressed]="form.controls[t.key].value"
+                      (click)="form.controls[t.key].setValue(!form.controls[t.key].value); form.controls[t.key].markAsDirty()">
+                <app-icon [name]="t.icon" [size]="16" /> {{ t.label }}
+                @if (form.controls[t.key].value) { <app-icon name="check" [size]="14" /> }
+              </button>
+            }
+          </div>
+        </section>
+
+        <!-- Large screens: the save button follows you down the page. -->
+        <div class="sticky bottom-4 z-10 max-lg:hidden">
+          <button type="submit" class="btn btn-primary w-full py-4 text-base" [disabled]="saving() || form.pristine">
+            @if (saving()) { Saving… } @else if (form.pristine) { <app-icon name="check" [size]="18" /> All changes saved } @else { Save changes }
+          </button>
+        </div>
+        <button type="button" class="btn btn-ghost w-full text-rose-600 dark:text-rose-400" (click)="logout()">
+          <app-icon name="logout" [size]="18" /> Log out
+        </button>
+      </div>
+
+      <!-- Phones: a save bar slides up as soon as something changes. -->
+      @if (!form.pristine || saving()) {
+        <div class="fixed inset-x-0 bottom-0 z-30 animate-fade-up border-t border-slate-200 bg-white/90 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden dark:border-slate-800 dark:bg-slate-950/90">
+          <button type="submit" class="btn btn-primary w-full py-3.5 text-base" [disabled]="saving()">
+            @if (saving()) { Saving… } @else { Save changes }
+          </button>
+        </div>
+      }
+    </form>
+  </div>
+}
