@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -22,7 +23,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	ResponseEntity<ProblemDetail> handleApiException(ApiException ex) {
 		ProblemDetail problem = ProblemDetail.forStatusAndDetail(ex.status(), ex.getMessage());
 		problem.setProperty("code", ex.code());
+		ex.properties().forEach(problem::setProperty);
 		return ResponseEntity.status(ex.status()).body(problem);
+	}
+
+	/** A logged-in staff member without the permission an endpoint needs. */
+	@ExceptionHandler(AccessDeniedException.class)
+	ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException ex) {
+		ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN,
+				"You don't have permission to do that.");
+		problem.setProperty("code", "forbidden");
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
 	}
 
 	@Override

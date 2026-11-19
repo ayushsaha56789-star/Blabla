@@ -50,13 +50,13 @@ public class User {
 
 	private boolean prefPets;
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false)
-	private Role role = Role.USER;
-
 	private boolean phoneVerified;
 
 	private boolean idVerified;
+
+	private String city;
+
+	private boolean betaTester;
 
 	@CreationTimestamp
 	@Column(nullable = false, updatable = false)
@@ -113,10 +113,13 @@ public class User {
 	public void setPrefSmoking(boolean prefSmoking) { this.prefSmoking = prefSmoking; }
 	public boolean isPrefPets() { return prefPets; }
 	public void setPrefPets(boolean prefPets) { this.prefPets = prefPets; }
-	public Role getRole() { return role; }
 	public boolean isPhoneVerified() { return phoneVerified; }
 	public void setPhoneVerified(boolean phoneVerified) { this.phoneVerified = phoneVerified; }
 	public boolean isIdVerified() { return idVerified; }
+	public String getCity() { return city; }
+	public void setCity(String city) { this.city = city; }
+	public boolean isBetaTester() { return betaTester; }
+	public void setBetaTester(boolean betaTester) { this.betaTester = betaTester; }
 	public Instant getCreatedAt() { return createdAt; }
 	public Instant getUpdatedAt() { return updatedAt; }
 }

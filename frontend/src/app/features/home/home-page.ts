@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { POPULAR_ROUTES } from '../../core/cities';
+import { FEATURE_PAGES } from '../../core/feature-pages';
+import { FeaturesService } from '../../core/features.service';
 import { Icon, IconName } from '../../shared/icon';
 import { RideSearchForm } from '../../shared/ride-search-form';
 
@@ -11,7 +13,10 @@ import { RideSearchForm } from '../../shared/ride-search-form';
   templateUrl: './home-page.html',
 })
 export class HomePage {
+  protected readonly features = inject(FeaturesService);
   protected readonly routes = POPULAR_ROUTES;
+  /** Extra areas (games, rentals, …) the owner has switched on. */
+  protected readonly extras = computed(() => FEATURE_PAGES.filter((p) => this.features.enabledKeys().has(p.key)));
 
   protected readonly benefits: ReadonlyArray<{ icon: IconName; title: string; text: string; tint: string }> = [
     { icon: 'rupee', title: 'Pay less, travel better', text: 'Split fuel and toll costs with co-travellers. Usually far cheaper than a cab.', tint: 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300' },

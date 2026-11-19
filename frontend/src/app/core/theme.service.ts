@@ -1,6 +1,7 @@
 import { effect, Injectable, signal } from '@angular/core';
 import { storageGet, storageSet } from './util';
 
+/** Light = white theme, dark = black theme, system = follow the phone or computer setting. */
 export type ThemeMode = 'light' | 'dark' | 'system';
 const KEY = 'sc.theme';
 
@@ -20,6 +21,10 @@ export class ThemeService {
     this.media?.addEventListener('change', () => this.apply());
   }
 
+  set(mode: ThemeMode): void {
+    this.mode.set(mode);
+  }
+
   toggle(): void {
     this.mode.set(this.isDark() ? 'light' : 'dark');
   }
@@ -27,7 +32,7 @@ export class ThemeService {
   private apply(): void {
     const dark = this.mode() === 'dark' || (this.mode() === 'system' && !!this.media?.matches);
     document.documentElement.classList.toggle('dark', dark);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#020617' : '#059669');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0b0b0b' : '#ffffff');
     this.isDark.set(dark);
   }
 

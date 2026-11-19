@@ -26,6 +26,26 @@
   --color-accent-500: oklch(70.5% 0.213 47.6);
   --color-accent-600: oklch(64.6% 0.222 41.1);
 
+  /*
+   * White and black themes: every "slate" class in the app uses pure neutral greys (no blue tint), so light mode
+   * is crisp white and dark mode is a true black (slate-950 ≈ #0b0b0b, cards slate-900 ≈ #171717).
+   */
+  --color-slate-50: oklch(98.5% 0 0);
+  --color-slate-100: oklch(97% 0 0);
+  --color-slate-200: oklch(92.2% 0 0);
+  --color-slate-300: oklch(87% 0 0);
+  --color-slate-400: oklch(70.8% 0 0);
+  --color-slate-500: oklch(55.6% 0 0);
+  --color-slate-600: oklch(43.9% 0 0);
+  --color-slate-700: oklch(37.1% 0 0);
+  --color-slate-800: oklch(26.9% 0 0);
+  --color-slate-900: oklch(20.5% 0 0);
+  --color-slate-950: oklch(13% 0 0);
+
+  /* Chart marks, validated with the dataviz palette checker against the card surfaces of each theme. */
+  --color-chart-light: #059669;
+  --color-chart-dark: #12a877;
+
   --animate-fade-up: fade-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   --animate-pop: pop 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 
@@ -121,4 +141,32 @@
   .badge-muted { @apply bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400; }
 
   .skeleton { @apply animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800; }
+
+  /* On/off switch: <button role="switch" [attr.aria-checked]="on" class="switch"><span class="switch-knob"></span></button> */
+  .switch {
+    @apply relative inline-flex h-7 w-12 shrink-0 items-center rounded-full bg-slate-300 transition-colors duration-200
+      focus-visible:ring-4 focus-visible:ring-brand-500/30 focus-visible:outline-none
+      disabled:cursor-not-allowed disabled:opacity-40 dark:bg-slate-700;
+  }
+  .switch[aria-checked="true"] { @apply bg-brand-600 dark:bg-brand-500; }
+  .switch-knob {
+    @apply pointer-events-none inline-block h-5 w-5 translate-x-1 rounded-full bg-white shadow-md transition-transform duration-200;
+  }
+  .switch[aria-checked="true"] .switch-knob { @apply translate-x-6; }
+
+  .kicker { @apply text-xs font-bold tracking-[0.12em] text-slate-500 uppercase dark:text-slate-400; }
+
+  .data-table { @apply w-full text-left text-sm; }
+  .data-table th { @apply px-4 py-3 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400; }
+  .data-table td { @apply border-t border-slate-100 px-4 py-3 align-middle dark:border-slate-800; }
+  .data-table tbody tr { @apply transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40; }
+
+  /* Staff role badges. */
+  .role-SUPER_ADMIN { @apply bg-accent-100 text-accent-600 dark:bg-accent-600/15 dark:text-accent-300; }
+  .role-ADMIN { @apply bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300; }
+  .role-MODERATOR { @apply bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300; }
+  .role-SUPPORT { @apply bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300; }
+
+  .badge-danger { @apply bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300; }
+  .badge-warning { @apply bg-accent-100 text-accent-600 dark:bg-accent-600/15 dark:text-accent-300; }
 }

@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard, profileCompleteGuard } from './core/auth.guards';
+import { FEATURE_PAGES } from './core/feature-pages';
+import { featureGuard } from './core/features.service';
 
 export const routes: Routes = [
   {
@@ -33,14 +35,29 @@ export const routes: Routes = [
   {
     path: 'search',
     title: 'Find a ride · SaathChalo',
+    canActivate: [featureGuard('rides.booking')],
     loadComponent: () => import('./features/rides/search-page').then((m) => m.SearchPage),
   },
   {
     path: 'publish',
     title: 'Offer a ride · SaathChalo',
-    canActivate: [profileCompleteGuard],
+    canActivate: [featureGuard('rides.publish'), profileCompleteGuard],
     loadComponent: () => import('./features/rides/publish-page').then((m) => m.PublishPage),
   },
+  {
+    path: 'admin',
+    title: 'Staff console · SaathChalo',
+    canActivate: [authGuard],
+    loadChildren: () => import('./admin/admin.routes').then((m) => m.ADMIN_ROUTES),
+  },
+  // "Coming soon" pages for areas the owner has switched on ahead of launch.
+  ...FEATURE_PAGES.map((p) => ({
+    path: p.path.slice(1),
+    title: `${p.label} · SaathChalo`,
+    canActivate: [featureGuard(p.key)],
+    data: { feature: p.key },
+    loadComponent: () => import('./features/coming-soon-page').then((m) => m.ComingSoonPage),
+  })),
   {
     path: '**',
     title: 'Page not found · SaathChalo',

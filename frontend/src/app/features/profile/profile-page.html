@@ -96,6 +96,13 @@
           </div>
         </div>
         <div>
+          <label for="city" class="label">Home city</label>
+          <input id="city" class="input" formControlName="city" list="profile-cities" autocomplete="address-level2" placeholder="E.g. Pune" />
+          <datalist id="profile-cities">@for (c of cities; track c) { <option [value]="c"></option> }</datalist>
+          @if (serverErrors()['city']) { <p class="field-error">{{ serverErrors()['city'] }}</p> }
+          @else { <p class="hint">Shown on your profile, and helps us show what's available near you.</p> }
+        </div>
+        <div>
           <label for="bio" class="label">About me</label>
           <textarea id="bio" rows="4" class="input resize-none" formControlName="bio" maxlength="500"
                     placeholder="E.g. Software engineer, travel Pune ↔ Mumbai most weekends. Love old Bollywood songs!"></textarea>

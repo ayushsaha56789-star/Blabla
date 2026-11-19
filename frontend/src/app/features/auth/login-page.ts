@@ -61,7 +61,7 @@ export class LoginPage {
       this.startCountdown(res.resendInSeconds);
       setTimeout(() => this.otp()?.focus());
     } catch (e) {
-      this.error.set(problemOf(e).detail);
+      this.error.set(this.message(e));
     } finally {
       this.busy.set(false);
     }
@@ -80,7 +80,7 @@ export class LoginPage {
         await this.router.navigate(['/onboarding'], { queryParams: { returnUrl: target } });
       }
     } catch (e) {
-      this.error.set(problemOf(e).detail);
+      this.error.set(this.message(e));
       this.otp()?.clear();
       setTimeout(() => this.otp()?.focus());
     } finally {
@@ -93,6 +93,15 @@ export class LoginPage {
     this.error.set(null);
     this.devCode.set(null);
     setTimeout(() => this.phoneField()?.nativeElement.focus());
+  }
+
+  /** A suspended account gets the reason staff gave, not just "suspended". */
+  private message(e: unknown): string {
+    const p = problemOf(e);
+    if (p.code === 'account_suspended') {
+      return p.reason ? `Your account is suspended: ${p.reason}` : 'Your account is suspended.';
+    }
+    return p.detail;
   }
 
   protected formatCountdown(seconds: number): string {

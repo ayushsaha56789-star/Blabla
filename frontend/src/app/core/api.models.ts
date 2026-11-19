@@ -12,6 +12,7 @@ export interface Me {
   email: string | null;
   gender: Gender | null;
   dateOfBirth: string | null;
+  city: string | null;
   bio: string | null;
   avatarUrl: string | null;
   prefChat: ChatPreference;
@@ -20,7 +21,7 @@ export interface Me {
   prefPets: boolean;
   phoneVerified: boolean;
   idVerified: boolean;
-  role: 'USER' | 'ADMIN';
+  betaTester: boolean;
   profileComplete: boolean;
   memberSince: string;
 }
@@ -31,6 +32,7 @@ export interface PublicProfile {
   avatarUrl: string | null;
   bio: string | null;
   age: number | null;
+  city: string | null;
   prefChat: ChatPreference;
   prefMusic: boolean;
   prefSmoking: boolean;
@@ -46,6 +48,7 @@ export interface UpdateProfileRequest {
   email: string | null;
   gender: Gender | null;
   dateOfBirth: string | null;
+  city: string | null;
   bio: string | null;
   prefChat: ChatPreference;
   prefMusic: boolean;
@@ -61,10 +64,23 @@ export interface OtpRequestResponse {
   devCode: string | null;
 }
 
+/** Present when the member is on the SaathChalo staff. */
+export interface StaffInfo {
+  role: string;
+  roleName: string;
+  totpEnabled: boolean;
+}
+
 export interface AuthResponse {
   accessToken: string;
   expiresAt: string;
   user: Me;
+  staff: StaffInfo | null;
+}
+
+export interface FeaturesResponse {
+  enabled: string[];
+  maintenance: boolean;
 }
 
 /** RFC 9457 problem details, as returned by the API for every error. */
@@ -73,4 +89,9 @@ export interface ApiProblem {
   detail: string;
   code?: string;
   errors?: Record<string, string>;
+  /** Suspensions: why, and until when (ISO time, or absent for "until further notice"). */
+  reason?: string;
+  until?: string;
+  /** Wrong 2FA codes: how many tries are left before a short lock. */
+  attemptsLeft?: number;
 }

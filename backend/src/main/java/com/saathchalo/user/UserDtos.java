@@ -15,16 +15,16 @@ public final class UserDtos {
 	private UserDtos() {
 	}
 
-	/** Everything about the logged-in user — only ever sent to that user. */
+	/** Everything about the logged-in member — only ever sent to that member. */
 	public record MeResponse(UUID id, String phone, String firstName, String lastName, String displayName,
-			String email, Gender gender, LocalDate dateOfBirth, String bio, String avatarUrl,
+			String email, Gender gender, LocalDate dateOfBirth, String city, String bio, String avatarUrl,
 			ChatPreference prefChat, boolean prefMusic, boolean prefSmoking, boolean prefPets,
-			boolean phoneVerified, boolean idVerified, Role role, boolean profileComplete, Instant memberSince) {
+			boolean phoneVerified, boolean idVerified, boolean betaTester, boolean profileComplete, Instant memberSince) {
 	}
 
 	/** What other members can see. No phone number, email or exact birth date. */
 	public record PublicProfileResponse(UUID id, String displayName, String avatarUrl, String bio, Integer age,
-			ChatPreference prefChat, boolean prefMusic, boolean prefSmoking, boolean prefPets,
+			String city, ChatPreference prefChat, boolean prefMusic, boolean prefSmoking, boolean prefPets,
 			boolean phoneVerified, boolean idVerified, Instant memberSince) {
 	}
 
@@ -40,6 +40,8 @@ public final class UserDtos {
 			@Email(message = "Please enter a valid email") @Size(max = 254) String email,
 			@NotNull(message = "Please choose an option") Gender gender,
 			@Past(message = "Date of birth must be in the past") LocalDate dateOfBirth,
+			@Size(max = 60, message = "City name is too long")
+			@Pattern(regexp = OPTIONAL_NAME, message = "Please use letters only") String city,
 			@Size(max = 500, message = "Keep your bio under 500 characters") String bio,
 			@NotNull(message = "Please choose an option") ChatPreference prefChat,
 			Boolean prefMusic, Boolean prefSmoking, Boolean prefPets) {

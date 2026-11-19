@@ -47,6 +47,12 @@
         }
       </div>
 
+      <div>
+        <label for="city" class="label">Home city <span class="font-normal text-slate-400">(optional)</span></label>
+        <input id="city" class="input" formControlName="city" list="onboarding-cities" autocomplete="address-level2" placeholder="E.g. Pune" />
+        <datalist id="onboarding-cities">@for (c of cities; track c) { <option [value]="c"></option> }</datalist>
+      </div>
+
       <div class="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-between">
         <button type="button" class="btn btn-ghost" (click)="skip()">Skip for now</button>
         <button type="submit" class="btn btn-primary px-8 py-3.5 text-base" [disabled]="saving()">

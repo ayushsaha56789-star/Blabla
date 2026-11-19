@@ -54,7 +54,7 @@ public class UserController {
 		return userService.publicProfile(id);
 	}
 
-	static UUID userId(Jwt jwt) {
+	private static UUID userId(Jwt jwt) {
 		return UUID.fromString(jwt.getSubject());
 	}
 }

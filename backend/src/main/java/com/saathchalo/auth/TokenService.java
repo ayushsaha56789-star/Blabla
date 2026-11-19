@@ -1,10 +1,10 @@
 package com.saathchalo.auth;
 
 import com.saathchalo.config.AppProperties;
-import com.saathchalo.user.User;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -31,18 +31,38 @@ public class TokenService {
 		this.clock = clock;
 	}
 
-	public AccessToken createAccessToken(User user) {
+	public AccessToken createAccessToken(UUID userId) {
 		Instant now = clock.instant();
 		Instant expiresAt = now.plus(config.accessTokenTtl());
 		JwtClaimsSet claims = JwtClaimsSet.builder()
 			.issuer(config.issuer())
 			.issuedAt(now)
 			.expiresAt(expiresAt)
-			.subject(user.getId().toString())
-			.claim("roles", List.of(user.getRole().name()))
+			.subject(userId.toString())
+			.claim("roles", List.of("USER"))
 			.build();
+		return new AccessToken(encode(claims), expiresAt);
+	}
+
+	/**
+	 * A console token, issued only after two-step verification. {@code sid} points at a server-side session that is
+	 * checked on every request, so it can be ended at any time (sign-out, idle timeout, removal from the staff).
+	 */
+	public AccessToken createStaffToken(UUID userId, UUID sessionId, Instant expiresAt) {
+		JwtClaimsSet claims = JwtClaimsSet.builder()
+			.issuer(config.issuer())
+			.issuedAt(clock.instant())
+			.expiresAt(expiresAt)
+			.subject(userId.toString())
+			.claim("sid", sessionId.toString())
+			.claim("roles", List.of("USER", "STAFF"))
+			.claim("amr", List.of("otp", "totp"))
+			.build();
+		return new AccessToken(encode(claims), expiresAt);
+	}
+
+	private String encode(JwtClaimsSet claims) {
 		JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
-		String value = encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
-		return new AccessToken(value, expiresAt);
+		return encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
 	}
 }

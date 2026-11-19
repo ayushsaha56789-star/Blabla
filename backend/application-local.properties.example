@@ -1,0 +1,5 @@
+# Copy this file to "application-local.properties" (same folder) and fill in your own values.
+# application-local.properties is git-ignored, so your number never reaches GitHub.
+
+# Your mobile number. The first time it logs in, it becomes the super admin.
+app.bootstrap.super-admin-phone=+91XXXXXXXXXX

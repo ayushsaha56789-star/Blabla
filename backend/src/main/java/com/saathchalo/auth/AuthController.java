@@ -5,6 +5,9 @@ import com.saathchalo.auth.AuthDtos.OtpRequest;
 import com.saathchalo.auth.AuthDtos.OtpRequestResponse;
 import com.saathchalo.auth.AuthDtos.OtpVerifyRequest;
 import com.saathchalo.common.ApiException;
+import com.saathchalo.common.PhoneNumbers;
+import com.saathchalo.common.RateLimiter;
+import com.saathchalo.common.RequestInfo;
 import com.saathchalo.config.AppProperties;
 import jakarta.validation.Valid;
 import java.time.Duration;
@@ -27,17 +30,30 @@ public class AuthController {
 
 	private final AuthService authService;
 
+	private final RateLimiter rateLimiter;
+
 	private final boolean secureCookie;
 
-	public AuthController(OtpService otpService, AuthService authService, AppProperties props) {
+	private final int maxCodesPerIp;
+
+	public AuthController(OtpService otpService, AuthService authService, RateLimiter rateLimiter, AppProperties props) {
 		this.otpService = otpService;
 		this.authService = authService;
+		this.rateLimiter = rateLimiter;
 		this.secureCookie = props.auth().refreshCookieSecure();
+		this.maxCodesPerIp = props.otp().maxPerIpPerHour();
 	}
 
 	@PostMapping("/otp/request")
 	public OtpRequestResponse requestOtp(@Valid @RequestBody OtpRequest request) {
-		return otpService.requestCode(request.phone());
+		String phone = PhoneNumbers.normalizeIndianMobile(request.phone());
+		String ip = RequestInfo.clientIp();
+		// Per-number limits live in OtpService; this one stops a single client from texting many numbers.
+		if (ip != null && !rateLimiter.tryAcquire("otp-ip:" + ip, maxCodesPerIp, Duration.ofHours(1))) {
+			throw ApiException.tooManyRequests("otp_ip_limit", "Too many login codes requested. Please try again later.");
+		}
+		authService.ensureCanLogIn(phone);
+		return otpService.requestCode(phone);
 	}
 
 	@PostMapping("/otp/verify")

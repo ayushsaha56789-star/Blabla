@@ -18,18 +18,38 @@
       </p>
     </div>
 
-    <app-ride-search-form class="mx-auto mt-10 max-w-5xl motion-safe:animate-fade-up [animation-delay:120ms]" />
+    @if (features.isOn('rides.booking')) {
+      <app-ride-search-form class="mx-auto mt-10 max-w-5xl motion-safe:animate-fade-up [animation-delay:120ms]" />
 
-    <div class="mx-auto mt-6 flex max-w-4xl flex-wrap items-center justify-center gap-2 motion-safe:animate-fade-up [animation-delay:200ms]">
-      <span class="mr-1 text-sm font-medium text-slate-500 dark:text-slate-400">Popular:</span>
-      @for (r of routes.slice(0, 6); track $index) {
-        <a class="chip py-1.5 text-[0.8rem]" routerLink="/search" [queryParams]="{ from: r[0], to: r[1] }">
-          {{ r[0] }} <app-icon name="arrowRight" [size]="13" class="text-slate-400" /> {{ r[1] }}
+      <div class="mx-auto mt-6 flex max-w-4xl flex-wrap items-center justify-center gap-2 motion-safe:animate-fade-up [animation-delay:200ms]">
+        <span class="mr-1 text-sm font-medium text-slate-500 dark:text-slate-400">Popular:</span>
+        @for (r of routes.slice(0, 6); track $index) {
+          <a class="chip py-1.5 text-[0.8rem]" routerLink="/search" [queryParams]="{ from: r[0], to: r[1] }">
+            {{ r[0] }} <app-icon name="arrowRight" [size]="13" class="text-slate-400" /> {{ r[1] }}
+          </a>
+        }
+      </div>
+    }
+  </div>
+</section>
+
+@if (extras().length) {
+  <!-- Areas the owner has switched on -->
+  <section class="container-page pt-4 pb-6" aria-labelledby="explore-heading">
+    <h2 id="explore-heading" class="text-2xl font-extrabold tracking-tight sm:text-3xl">More on SaathChalo</h2>
+    <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      @for (p of extras(); track p.key) {
+        <a [routerLink]="p.path" class="group relative overflow-hidden rounded-3xl bg-linear-to-br p-6 text-white shadow-lg transition duration-300 hover:-translate-y-1 hover:shadow-xl" [class]="p.gradient">
+          <div aria-hidden="true" class="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/20 blur-2xl transition group-hover:scale-125"></div>
+          <span class="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur"><app-icon [name]="p.icon" [size]="24" /></span>
+          <h3 class="relative mt-4 text-lg font-bold">{{ p.label }}</h3>
+          <p class="relative mt-1 text-sm text-white/90">{{ p.tagline }}</p>
+          <span class="relative mt-4 inline-flex items-center gap-1 text-sm font-semibold">Take a look <app-icon name="arrowRight" [size]="15" /></span>
         </a>
       }
     </div>
-  </div>
-</section>
+  </section>
+}
 
 <!-- Why SaathChalo -->
 <section class="container-page py-14 sm:py-16" aria-labelledby="why-heading">
@@ -68,6 +88,7 @@
 </section>
 
 <!-- Driver call to action -->
+@if (features.isOn('rides.publish')) {
 <section class="container-page py-16 sm:py-20">
   <div class="relative overflow-hidden rounded-[2rem] bg-linear-to-br from-brand-600 to-brand-800 px-6 py-12 text-white shadow-2xl shadow-brand-700/20 sm:px-12 sm:py-16">
     <div aria-hidden="true" class="absolute -right-16 -bottom-24 h-72 w-72 rounded-full bg-accent-400/30 blur-3xl"></div>
@@ -86,3 +107,4 @@
     </div>
   </div>
 </section>
+}

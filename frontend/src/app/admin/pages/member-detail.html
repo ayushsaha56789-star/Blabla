@@ -1,0 +1,157 @@
+<a routerLink="/admin/members" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+  <app-icon name="arrowLeft" [size]="16" /> All members
+</a>
+
+@if (error()) {
+  <div class="card mt-6 p-8 text-center" role="alert">{{ error() }}</div>
+} @else if (data(); as d) {
+  <!-- Header -->
+  <section class="card mt-4 animate-fade-up p-6">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
+      <app-avatar [url]="d.member.avatarUrl" [name]="d.member.displayName" [size]="76" />
+      <div class="min-w-0 flex-1">
+        <h1 class="truncate text-2xl font-extrabold tracking-tight">{{ d.member.displayName }}</h1>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          {{ d.member.gender === 'FEMALE' ? 'Woman' : d.member.gender === 'MALE' ? 'Man' : d.member.gender === 'OTHER' ? 'Other' : 'Gender not set' }}
+          @if (d.member.age) { · {{ d.member.age }} years }
+          @if (d.member.city) { · {{ d.member.city }} }
+          · joined {{ d.member.memberSince | date: 'd MMM y' }}
+        </p>
+        <div class="mt-3 flex flex-wrap gap-1.5">
+          @if (d.member.suspended) { <span class="badge badge-danger"><app-icon name="ban" [size]="12" /> Suspended</span> }
+          @else if (active().length) { <span class="badge badge-warning"><app-icon name="lock" [size]="12" /> Restricted from {{ active().length }} {{ active().length === 1 ? 'area' : 'areas' }}</span> }
+          @else { <span class="badge badge-success"><app-icon name="check" [size]="12" /> Active</span> }
+          @if (d.staffRoleName) { <span class="badge" [class]="'role-' + d.staffRole">{{ d.staffRoleName }}</span> }
+          @if (d.member.betaTester) { <span class="badge badge-muted"><app-icon name="sparkles" [size]="12" /> Beta tester</span> }
+          @if (d.member.phoneVerified) { <span class="badge badge-muted"><app-icon name="phone" [size]="12" /> Phone verified</span> }
+          @if (!d.member.profileComplete) { <span class="badge badge-warning">Profile incomplete</span> }
+        </div>
+      </div>
+    </div>
+    @if (d.member.bio) {
+      <p class="mt-5 rounded-2xl bg-slate-50 p-4 text-sm whitespace-pre-line text-slate-700 dark:bg-slate-800/50 dark:text-slate-300">{{ d.member.bio }}</p>
+    }
+  </section>
+
+  <div class="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+    <!-- Account status -->
+    <section class="card p-6" aria-labelledby="status-heading">
+      <h2 id="status-heading" class="text-lg font-bold">Account status</h2>
+      @if (active().length) {
+        <ul class="mt-4 space-y-3">
+          @for (r of active(); track r.id) {
+            <li class="rounded-2xl border p-4" [class]="r.area === 'ALL' ? 'border-rose-200 bg-rose-50/60 dark:border-rose-500/30 dark:bg-rose-500/10' : 'border-accent-300/60 bg-accent-100/40 dark:border-accent-600/30 dark:bg-accent-600/10'">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="font-semibold">{{ r.areaLabel }}</p>
+                  <p class="mt-1 text-sm text-slate-700 dark:text-slate-300">“{{ r.reason }}”</p>
+                  <p class="mt-1 text-xs text-slate-500">Since {{ r.startsAt | date: 'd MMM y, h:mm a' }} · {{ r.endsAt ? 'until ' + (r.endsAt | date: 'd MMM y') : 'until further notice' }}</p>
+                </div>
+                @if (canRestrict()) {
+                  <button type="button" class="btn btn-secondary btn-sm shrink-0" (click)="lift(r.id)" [disabled]="busy()">Lift</button>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="mt-3 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400"><app-icon name="checkCircle" [size]="18" class="text-brand-600" /> No restrictions. This member can use everything.</p>
+      }
+
+      @if (canRestrict()) {
+        <form class="mt-6 space-y-4 border-t border-slate-100 pt-6 dark:border-slate-800" (submit)="restrict($event)">
+          <h3 class="font-semibold">Restrict or suspend</h3>
+          <div>
+            <label for="area" class="label">What to block</label>
+            <select id="area" class="input" [value]="area()" (change)="area.set($any($event.target).value)">
+              @for (a of d.areas; track a.key) { <option [value]="a.key">{{ a.label }}</option> }
+            </select>
+          </div>
+          <div>
+            <label for="reason" class="label">Reason <span class="font-normal text-slate-400">(the member sees this)</span></label>
+            <textarea id="reason" rows="2" class="input resize-none" maxlength="500" placeholder="E.g. Did not show up for 3 booked rides"
+                      [value]="reason()" (input)="reason.set($any($event.target).value)"></textarea>
+          </div>
+          <div>
+            <label for="until" class="label">Until <span class="font-normal text-slate-400">(optional)</span></label>
+            <input id="until" type="date" class="input" [min]="minDate" [value]="until()" (input)="until.set($any($event.target).value)" />
+            <p class="hint">Leave empty to keep it until you lift it.</p>
+          </div>
+          <button type="submit" class="btn w-full sm:w-auto" [disabled]="busy()"
+                  [class]="area() === 'ALL' ? 'bg-rose-600 text-white hover:bg-rose-700' : 'btn-primary'">
+            <app-icon [name]="area() === 'ALL' ? 'ban' : 'lock'" [size]="17" />
+            {{ area() === 'ALL' ? 'Suspend account' : 'Add restriction' }}
+          </button>
+        </form>
+      } @else if (isYou()) {
+        <p class="hint mt-4">This is your own account.</p>
+      }
+
+      @if (past().length) {
+        <details class="mt-6">
+          <summary class="cursor-pointer text-sm font-semibold text-slate-500">Earlier restrictions ({{ past().length }})</summary>
+          <ul class="mt-3 space-y-2 text-sm">
+            @for (r of past(); track r.id) {
+              <li class="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
+                <b>{{ r.areaLabel }}</b> — {{ r.reason }}
+                <span class="block text-xs text-slate-500">{{ r.startsAt | date: 'd MMM y' }} to {{ (r.liftedAt || r.endsAt) | date: 'd MMM y' }}</span>
+              </li>
+            }
+          </ul>
+        </details>
+      }
+    </section>
+
+    <div class="space-y-4">
+      <!-- Contact -->
+      <section class="card p-6">
+        <h2 class="text-lg font-bold">Contact</h2>
+        <p class="mt-3 font-mono text-lg font-semibold tracking-wide">{{ phone() ? (phone() | phone) : d.member.maskedPhone }}</p>
+        @if (phone()) {
+          <p class="hint">Shown to you just now. This was recorded in the audit log.</p>
+        } @else if (session.can('users.view_contact')) {
+          <button type="button" class="btn btn-secondary btn-sm mt-3" (click)="reveal()" [disabled]="busy()">
+            <app-icon name="eye" [size]="16" /> Show full number
+          </button>
+          <p class="hint">Showing it is recorded in the audit log.</p>
+        }
+      </section>
+
+      @if (session.can('features.manage')) {
+        <section class="card flex items-center justify-between gap-4 p-6">
+          <div>
+            <h2 class="font-bold">Beta tester</h2>
+            <p class="text-sm text-slate-600 dark:text-slate-400">Sees features switched on for beta testers.</p>
+          </div>
+          <button type="button" role="switch" class="switch" [attr.aria-checked]="d.member.betaTester" (click)="toggleBeta()" [disabled]="busy()"
+                  aria-label="Beta tester"><span class="switch-knob"></span></button>
+        </section>
+      }
+
+      @if (session.can('audit.view')) {
+        <section class="card p-6">
+          <h2 class="text-lg font-bold">Activity</h2>
+          @if (d.activity.length) {
+            <ul class="mt-3 space-y-3">
+              @for (a of d.activity; track a.id) {
+                <li class="flex gap-3">
+                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" [class]="auditStyle(a.action).tint">
+                    <app-icon [name]="auditStyle(a.action).icon" [size]="15" />
+                  </span>
+                  <div class="min-w-0 text-sm">
+                    <p class="font-medium">{{ a.summary }}</p>
+                    <p class="text-xs text-slate-500" [title]="fullTime(a.occurredAt)">{{ a.actorLabel }} · {{ timeAgo(a.occurredAt) }}</p>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="mt-3 text-sm text-slate-500">No staff actions about this member yet.</p>
+          }
+        </section>
+      }
+    </div>
+  </div>
+} @else {
+  <div class="mt-4 space-y-4" aria-busy="true"><div class="skeleton h-40"></div><div class="skeleton h-72"></div></div>
+}

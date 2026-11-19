@@ -1,0 +1,106 @@
+<div class="relative flex min-h-dvh items-center justify-center overflow-hidden bg-slate-50 px-4 py-10 dark:bg-slate-950">
+  <div aria-hidden="true" class="pointer-events-none absolute -top-40 -left-40 h-[28rem] w-[28rem] rounded-full bg-brand-300/30 blur-3xl dark:bg-brand-500/10"></div>
+  <div aria-hidden="true" class="pointer-events-none absolute -right-40 -bottom-40 h-[26rem] w-[26rem] rounded-full bg-accent-300/30 blur-3xl dark:bg-accent-500/10"></div>
+
+  <section class="card relative w-full max-w-md animate-fade-up p-6 shadow-xl sm:p-8">
+    <div class="flex items-center justify-between">
+      <app-logo [size]="30" />
+      <span class="badge badge-muted"><app-icon name="lock" [size]="12" /> Staff console</span>
+    </div>
+
+    @switch (mode()) {
+      @case ('setup') {
+        <h1 class="mt-7 text-2xl font-extrabold tracking-tight">Set up two-step verification</h1>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+          The console needs a second step after your phone code. You'll do this once.
+        </p>
+        <ol class="mt-6 space-y-5">
+          <li class="flex gap-3">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white dark:bg-brand-500 dark:text-brand-950">1</span>
+            <p class="text-sm">Install an authenticator app on your phone, such as <b>Google Authenticator</b> or <b>Microsoft Authenticator</b>.</p>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white dark:bg-brand-500 dark:text-brand-950">2</span>
+            <div class="min-w-0 flex-1 text-sm">
+              <p>In the app, tap <b>+</b> and scan this QR code.</p>
+              @if (setup(); as s) {
+                <div class="mt-3 flex flex-col items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-200 sm:flex-row dark:ring-slate-700">
+                  <img [src]="s.qrCode" alt="QR code for your authenticator app" width="132" height="132" class="h-33 w-33 rounded-lg [image-rendering:pixelated]" />
+                  <div class="min-w-0 text-center text-slate-900 sm:text-left">
+                    <p class="text-xs text-slate-500">Can't scan? Enter this key:</p>
+                    <p class="mt-1 font-mono text-sm font-bold break-all select-all">{{ s.secret }}</p>
+                  </div>
+                </div>
+              } @else {
+                <div class="skeleton mt-3 h-40"></div>
+              }
+            </div>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white dark:bg-brand-500 dark:text-brand-950">3</span>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm">Enter the 6-digit code the app shows.</p>
+              <app-otp-input class="mt-3" [(value)]="code" (completed)="confirmSetup()" [disabled]="busy() || !setup()" [invalid]="!!error()" />
+            </div>
+          </li>
+        </ol>
+        @if (error()) { <p class="field-error" role="alert">{{ error() }}</p> }
+        <button type="button" class="btn btn-primary mt-6 w-full py-3.5" (click)="confirmSetup()" [disabled]="busy() || code().length !== 6">
+          @if (busy()) { Checking… } @else { Turn on and continue }
+        </button>
+      }
+
+      @case ('codes') {
+        <span class="mt-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+          <app-icon name="checkCircle" [size]="26" />
+        </span>
+        <h1 class="mt-4 text-2xl font-extrabold tracking-tight">Save your recovery codes</h1>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+          If you lose your phone, each of these codes lets you in <b>once</b>. Keep them somewhere safe — they won't be shown again.
+        </p>
+        <ul class="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-slate-50 p-4 font-mono text-sm font-semibold tracking-wider dark:bg-slate-800/60">
+          @for (c of session.freshCodes(); track c) { <li class="text-center">{{ c }}</li> }
+        </ul>
+        <div class="mt-3 flex gap-2">
+          <button type="button" class="btn btn-secondary btn-sm flex-1" (click)="copyCodes()"><app-icon name="copy" [size]="16" /> Copy</button>
+          <button type="button" class="btn btn-secondary btn-sm flex-1" (click)="downloadCodes()"><app-icon name="download" [size]="16" /> Download</button>
+        </div>
+        <label class="mt-5 flex cursor-pointer items-center gap-3 text-sm">
+          <input type="checkbox" class="h-5 w-5 rounded accent-brand-600" [checked]="saved()" (change)="saved.set(!saved())" />
+          I've saved these codes somewhere safe
+        </label>
+        <button type="button" class="btn btn-primary mt-6 w-full py-3.5" [disabled]="!saved()" (click)="finish()">
+          Open the console <app-icon name="arrowRight" [size]="18" />
+        </button>
+      }
+
+      @default {
+        <h1 class="mt-7 text-2xl font-extrabold tracking-tight">Welcome back</h1>
+        @if (session.timedOut()) {
+          <p class="mt-3 flex items-start gap-2 rounded-xl bg-accent-100/70 p-3 text-sm text-accent-600 dark:bg-accent-600/10 dark:text-accent-300">
+            <app-icon name="clock" [size]="18" /> Your console session ended after 15 minutes without activity.
+          </p>
+        }
+        @if (!useRecovery()) {
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Enter the 6-digit code from your authenticator app.</p>
+          <app-otp-input class="mt-5" [(value)]="code" (completed)="signIn()" [disabled]="busy()" [invalid]="!!error()" />
+        } @else {
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Enter one of your recovery codes. It will stop working after this.</p>
+          <input class="input mt-5 text-center font-mono text-lg tracking-widest uppercase" placeholder="XXXXX-XXXXX" maxlength="11"
+                 autocomplete="off" [value]="recovery()" (input)="recovery.set($any($event.target).value)" (keyup.enter)="signIn()" />
+        }
+        @if (error()) { <p class="field-error" role="alert">{{ error() }}</p> }
+        <button type="button" class="btn btn-primary mt-6 w-full py-3.5" (click)="signIn()" [disabled]="busy()">
+          @if (busy()) { Checking… } @else { Open the console }
+        </button>
+        <button type="button" class="mt-4 w-full text-center text-sm font-semibold text-brand-700 hover:underline dark:text-brand-400" (click)="toggleRecovery()">
+          {{ useRecovery() ? 'Use my authenticator app instead' : 'Lost your phone? Use a recovery code' }}
+        </button>
+      }
+    }
+
+    <a routerLink="/" class="mt-6 flex items-center justify-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+      <app-icon name="arrowLeft" [size]="16" /> Back to SaathChalo
+    </a>
+  </section>
+</div>

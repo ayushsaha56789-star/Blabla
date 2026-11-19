@@ -4,31 +4,63 @@
   </a>
 
   <div class="hidden items-center gap-1 md:flex">
-    <a routerLink="/search" routerLinkActive="!text-brand-700 dark:!text-brand-300 bg-brand-50 dark:bg-brand-950" class="btn btn-ghost btn-sm">
-      <app-icon name="search" [size]="18" /> Find a ride
-    </a>
-    <a routerLink="/publish" routerLinkActive="!text-brand-700 dark:!text-brand-300 bg-brand-50 dark:bg-brand-950" class="btn btn-ghost btn-sm">
-      <app-icon name="plusCircle" [size]="18" /> Offer a ride
-    </a>
+    @if (features.isOn('rides.booking')) {
+      <a routerLink="/search" routerLinkActive="!text-brand-700 dark:!text-brand-300 bg-brand-50 dark:bg-brand-500/10" class="btn btn-ghost btn-sm">
+        <app-icon name="search" [size]="18" /> Find a ride
+      </a>
+    }
+    @if (features.isOn('rides.publish')) {
+      <a routerLink="/publish" routerLinkActive="!text-brand-700 dark:!text-brand-300 bg-brand-50 dark:bg-brand-500/10" class="btn btn-ghost btn-sm">
+        <app-icon name="plusCircle" [size]="18" /> Offer a ride
+      </a>
+    }
+    @if (gamesOn()) {
+      <a routerLink="/games" routerLinkActive="!text-brand-700 dark:!text-brand-300 bg-brand-50 dark:bg-brand-500/10" class="btn btn-ghost btn-sm">
+        <app-icon name="gamepad" [size]="18" /> Games
+      </a>
+    }
+    @if (exploreItems().length) {
+      <div class="relative">
+        <button type="button" class="btn btn-ghost btn-sm" (click)="toggle('explore')" [attr.aria-expanded]="openMenu() === 'explore'" aria-haspopup="menu">
+          <app-icon name="sparkles" [size]="18" /> Explore <app-icon name="chevronDown" [size]="14" class="transition" [class.rotate-180]="openMenu() === 'explore'" />
+        </button>
+        @if (openMenu() === 'explore') {
+          <div class="card absolute left-0 mt-2 w-72 origin-top-left animate-pop p-2 shadow-xl" role="menu">
+            @for (p of exploreItems(); track p.key) {
+              <a [routerLink]="p.path" class="flex items-center gap-3 rounded-xl p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60" role="menuitem">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br text-white" [class]="p.gradient"><app-icon [name]="p.icon" [size]="18" /></span>
+                <span class="min-w-0"><span class="block text-sm font-semibold">{{ p.label }}</span><span class="block truncate text-xs text-slate-500 dark:text-slate-400">{{ p.tagline }}</span></span>
+              </a>
+            }
+          </div>
+        }
+      </div>
+    }
   </div>
 
   <div class="ml-auto flex items-center gap-1.5">
-    <button type="button" class="btn btn-ghost btn-icon" (click)="theme.toggle()"
-            [attr.aria-label]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
-            [title]="theme.isDark() ? 'Light mode' : 'Dark mode'">
-      <app-icon [name]="theme.isDark() ? 'sun' : 'moon'" />
-    </button>
+    <div class="relative">
+      <button type="button" class="btn btn-ghost btn-icon" (click)="toggle('theme')" [attr.aria-expanded]="openMenu() === 'theme'" aria-label="Choose theme" title="Theme">
+        <app-icon [name]="theme.mode() === 'system' ? 'monitor' : theme.isDark() ? 'moon' : 'sun'" />
+      </button>
+      @if (openMenu() === 'theme') {
+        <div class="card absolute right-0 mt-2 origin-top-right animate-pop p-3 shadow-xl">
+          <p class="kicker mb-2 px-1">Theme</p>
+          <app-theme-switcher [showLabels]="true" />
+        </div>
+      }
+    </div>
 
     @if (auth.user(); as user) {
       <div class="relative hidden md:block">
         <button type="button" class="flex items-center gap-2 rounded-full p-1 pr-3 transition hover:bg-slate-100 focus-visible:ring-4 focus-visible:ring-brand-500/30 focus-visible:outline-none dark:hover:bg-slate-800"
-                (click)="accountOpen.set(!accountOpen())" [attr.aria-expanded]="accountOpen()" aria-haspopup="menu">
+                (click)="toggle('account')" [attr.aria-expanded]="openMenu() === 'account'" aria-haspopup="menu">
           <app-avatar [url]="user.avatarUrl" [name]="user.displayName" [size]="34" />
           <span class="max-w-32 truncate text-sm font-semibold">{{ user.firstName || 'Account' }}</span>
-          <app-icon name="chevronDown" [size]="16" class="text-slate-400 transition" [class.rotate-180]="accountOpen()" />
+          <app-icon name="chevronDown" [size]="16" class="text-slate-400 transition" [class.rotate-180]="openMenu() === 'account'" />
         </button>
-        @if (accountOpen()) {
-          <div class="card absolute right-0 mt-2 w-60 origin-top-right animate-pop p-2 shadow-xl" role="menu">
+        @if (openMenu() === 'account') {
+          <div class="card absolute right-0 mt-2 w-64 origin-top-right animate-pop p-2 shadow-xl" role="menu">
             <div class="px-3 py-2">
               <p class="truncate text-sm font-bold">{{ user.displayName }}</p>
               <p class="text-xs text-slate-500 dark:text-slate-400">{{ user.phone | phone }}</p>
@@ -37,6 +69,11 @@
             <a routerLink="/profile" class="btn btn-ghost btn-sm w-full justify-start" role="menuitem">
               <app-icon name="user" [size]="18" /> My profile
             </a>
+            @if (auth.staff(); as staff) {
+              <a routerLink="/admin" class="btn btn-ghost btn-sm w-full justify-start" role="menuitem">
+                <app-icon name="grid" [size]="18" /> Staff console <span class="badge ml-auto px-2 py-0 text-[0.65rem]" [class]="'role-' + staff.role">{{ staff.roleName }}</span>
+              </a>
+            }
             <button type="button" class="btn btn-ghost btn-sm w-full justify-start text-rose-600 dark:text-rose-400" role="menuitem" (click)="logout()">
               <app-icon name="logout" [size]="18" /> Log out
             </button>
@@ -66,8 +103,22 @@
         <app-icon name="arrowRight" [size]="18" class="ml-auto text-slate-400" />
       </a>
     }
-    <a routerLink="/search" class="btn btn-ghost w-full justify-start text-base"><app-icon name="search" /> Find a ride</a>
-    <a routerLink="/publish" class="btn btn-ghost w-full justify-start text-base"><app-icon name="plusCircle" /> Offer a ride</a>
+    @if (features.isOn('rides.booking')) {
+      <a routerLink="/search" class="btn btn-ghost w-full justify-start text-base"><app-icon name="search" /> Find a ride</a>
+    }
+    @if (features.isOn('rides.publish')) {
+      <a routerLink="/publish" class="btn btn-ghost w-full justify-start text-base"><app-icon name="plusCircle" /> Offer a ride</a>
+    }
+    @for (p of extras(); track p.key) {
+      <a [routerLink]="p.path" class="btn btn-ghost w-full justify-start text-base"><app-icon [name]="p.icon" /> {{ p.label }}</a>
+    }
+    @if (auth.staff()) {
+      <a routerLink="/admin" class="btn btn-ghost w-full justify-start text-base"><app-icon name="grid" /> Staff console</a>
+    }
+    <div class="flex items-center justify-between gap-3 px-5 py-3">
+      <span class="text-sm font-semibold text-slate-600 dark:text-slate-400">Theme</span>
+      <app-theme-switcher [showLabels]="true" />
+    </div>
     @if (auth.isLoggedIn()) {
       <button type="button" class="btn btn-ghost w-full justify-start text-base text-rose-600 dark:text-rose-400" (click)="logout()">
         <app-icon name="logout" /> Log out

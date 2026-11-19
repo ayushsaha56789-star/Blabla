@@ -7,6 +7,7 @@ import { problemOf } from '../../core/errors';
 import { ToastService } from '../../core/toast.service';
 import { UserApi } from '../../core/user-api';
 import { safeReturnUrl } from '../../core/util';
+import { POPULAR_CITIES } from '../../core/cities';
 import { Icon } from '../../shared/icon';
 
 @Component({
@@ -34,7 +35,9 @@ export class OnboardingPage {
     lastName: [this.auth.user()?.lastName ?? '', [Validators.maxLength(50)]],
     gender: [this.auth.user()?.gender ?? (null as Gender | null), [Validators.required]],
     dateOfBirth: [this.auth.user()?.dateOfBirth ?? ''],
+    city: [this.auth.user()?.city ?? '', [Validators.maxLength(60)]],
   });
+  protected readonly cities = POPULAR_CITIES;
 
   protected readonly saving = signal(false);
   protected readonly serverErrors = signal<Record<string, string>>({});
@@ -53,6 +56,7 @@ export class OnboardingPage {
         lastName: v.lastName.trim() || null,
         gender: v.gender,
         dateOfBirth: v.dateOfBirth || null,
+        city: v.city.trim() || null,
         email: me.email,
         bio: me.bio,
         prefChat: me.prefChat,

@@ -33,3 +33,6 @@ build/
 
 ### SaathChalo local data (uploads) ###
 data/
+
+### Machine-only settings (e.g. the super admin phone number) ###
+application-local.properties

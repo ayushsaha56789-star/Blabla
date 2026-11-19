@@ -20,6 +20,10 @@ public final class AuthDtos {
 			@NotBlank(message = "Please enter the code") String code) {
 	}
 
-	public record AuthResponse(String accessToken, Instant expiresAt, MeResponse user) {
+	/** {@code staff} is null for members who are not on the staff. */
+	public record AuthResponse(String accessToken, Instant expiresAt, MeResponse user, StaffInfo staff) {
+	}
+
+	public record StaffInfo(String role, String roleName, boolean totpEnabled) {
 	}
 }

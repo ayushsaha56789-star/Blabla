@@ -12,6 +12,7 @@ import { Avatar } from '../../shared/avatar';
 import { Icon, IconName } from '../../shared/icon';
 import { PhonePipe } from '../../shared/phone.pipe';
 import { CHAT_OPTIONS } from './prefs';
+import { POPULAR_CITIES } from '../../core/cities';
 
 @Component({
   selector: 'app-profile-page',
@@ -25,6 +26,7 @@ export class ProfilePage {
   private readonly toast = inject(ToastService);
 
   protected readonly chatOptions = CHAT_OPTIONS;
+  protected readonly cities = POPULAR_CITIES;
   protected readonly genders: ReadonlyArray<{ value: Gender; label: string }> = [
     { value: 'FEMALE', label: 'Woman' },
     { value: 'MALE', label: 'Man' },
@@ -43,6 +45,7 @@ export class ProfilePage {
     email: ['', [Validators.email, Validators.maxLength(254)]],
     gender: [null as Gender | null, [Validators.required]],
     dateOfBirth: [''],
+    city: ['', [Validators.maxLength(60)]],
     bio: ['', [Validators.maxLength(500)]],
     prefChat: ['SOMETIMES' as ChatPreference],
     prefMusic: [true],
@@ -76,6 +79,7 @@ export class ProfilePage {
         lastName: v.lastName.trim() || null,
         email: v.email.trim() || null,
         dateOfBirth: v.dateOfBirth || null,
+        city: v.city.trim() || null,
         bio: v.bio.trim() || null,
       });
       this.auth.setUser(me);
@@ -139,6 +143,7 @@ export class ProfilePage {
       email: me.email ?? '',
       gender: me.gender,
       dateOfBirth: me.dateOfBirth ?? '',
+      city: me.city ?? '',
       bio: me.bio ?? '',
       prefChat: me.prefChat,
       prefMusic: me.prefMusic,

@@ -1,14 +1,10 @@
 package com.saathchalo.auth;
 
-import com.saathchalo.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -22,9 +18,9 @@ public class RefreshToken {
 	@GeneratedValue(strategy = GenerationType.UUID)
 	private UUID id;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "user_id", nullable = false)
-	private User user;
+	/** The member (user module) this session belongs to; modules refer to each other's data by ID only. */
+	@Column(nullable = false)
+	private UUID userId;
 
 	@Column(nullable = false, unique = true, length = 64)
 	private String tokenHash;
@@ -40,8 +36,8 @@ public class RefreshToken {
 	protected RefreshToken() {
 	}
 
-	public RefreshToken(User user, String tokenHash, Instant createdAt, Instant expiresAt) {
-		this.user = user;
+	public RefreshToken(UUID userId, String tokenHash, Instant createdAt, Instant expiresAt) {
+		this.userId = userId;
 		this.tokenHash = tokenHash;
 		this.createdAt = createdAt;
 		this.expiresAt = expiresAt;
@@ -57,7 +53,7 @@ public class RefreshToken {
 		}
 	}
 
-	public User getUser() { return user; }
+	public UUID getUserId() { return userId; }
 	public Instant getExpiresAt() { return expiresAt; }
 	public Instant getRevokedAt() { return revokedAt; }
 }

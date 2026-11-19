@@ -2,11 +2,17 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { AuthResponse, Me, OtpRequestResponse } from './api.models';
+import { AuthResponse, Me, OtpRequestResponse, StaffInfo } from './api.models';
+import { problemOf } from './errors';
 import { storageGet, storageSet } from './util';
 
 /** Remembers that this browser had a session, so we only try to restore one when it makes sense. */
 const SESSION_HINT = 'sc.session';
+
+export interface Suspension {
+  reason: string | null;
+  until: string | null;
+}
 
 /**
  * Login state. The short-lived access token lives only in memory; the long-lived refresh token is an
@@ -19,9 +25,13 @@ export class AuthService {
 
   private readonly token = signal<string | null>(null);
   private readonly me = signal<Me | null>(null);
+  private readonly staffInfo = signal<StaffInfo | null>(null);
+  private readonly suspended = signal<Suspension | null>(null);
   private refreshing: Promise<boolean> | null = null;
 
   readonly user = this.me.asReadonly();
+  readonly staff = this.staffInfo.asReadonly();
+  readonly suspension = this.suspended.asReadonly();
   readonly isLoggedIn = computed(() => this.me() !== null);
 
   accessToken(): string | null {
@@ -55,6 +65,9 @@ export class AuthService {
       .catch((err: unknown) => {
         // Only a definite "no" from the server ends the session; a network blip should not.
         const definite = err instanceof HttpErrorResponse && (err.status === 401 || err.status === 403);
+        if (err instanceof HttpErrorResponse && problemOf(err).code === 'account_suspended') {
+          this.markSuspended(problemOf(err).reason ?? null, problemOf(err).until ?? null);
+        }
         this.endSession(definite);
         return false;
       })
@@ -69,6 +82,7 @@ export class AuthService {
       // Log out locally even if the server can't be reached.
     }
     this.endSession(true);
+    this.suspended.set(null);
     await this.router.navigateByUrl('/');
   }
 
@@ -77,15 +91,23 @@ export class AuthService {
     this.me.set(me);
   }
 
+  /** Called when the API says this account is suspended; the app then shows the suspension screen. */
+  markSuspended(reason: string | null, until: string | null): void {
+    this.suspended.set({ reason, until });
+  }
+
   private startSession(res: AuthResponse): void {
     this.token.set(res.accessToken);
     this.me.set(res.user);
+    this.staffInfo.set(res.staff ?? null);
+    this.suspended.set(null);
     storageSet(SESSION_HINT, '1');
   }
 
   private endSession(forgetHint: boolean): void {
     this.token.set(null);
     this.me.set(null);
+    this.staffInfo.set(null);
     if (forgetHint) storageSet(SESSION_HINT, null);
   }
 }
