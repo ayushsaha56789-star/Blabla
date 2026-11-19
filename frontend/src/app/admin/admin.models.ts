@@ -1,5 +1,6 @@
 /** Shapes of the staff console API (backend: admin/AdminDtos.java and auth/Staff*.java). */
 import { Gender } from '../core/api.models';
+import { MemberCard, PassengerView, RideDetails, RideStatus } from '../core/rides.models';
 
 export interface StaffStatus {
   staff: boolean;
@@ -68,8 +69,38 @@ export interface AuditEntry {
   requestId: string | null;
 }
 
+export interface RideStats {
+  upcoming: number;
+  publishedLast7Days: number;
+  bookingsLast7Days: number;
+  seatsBookedUpcoming: number;
+  cancelledLast7Days: number;
+}
+
+export interface AdminRideRow {
+  id: string;
+  status: RideStatus;
+  departureAt: string;
+  fromName: string;
+  toName: string;
+  stopCount: number;
+  driver: MemberCard;
+  seatsTotal: number;
+  seatsBooked: number;
+  pendingRequests: number;
+  pricePerSeat: number;
+  ladiesOnly: boolean;
+  createdAt: string;
+}
+
+export interface AdminRideDetails {
+  ride: RideDetails;
+  bookings: PassengerView[];
+}
+
 export interface Dashboard {
   members: MemberStats;
+  rides: RideStats;
   staffCount: number;
   featuresOn: number;
   featuresTotal: number;

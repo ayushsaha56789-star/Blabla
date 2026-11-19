@@ -1,6 +1,6 @@
 # SaathChalo architecture
 
-> **Status:** v2, 19 November 2026. The owner's decisions are recorded in section 16. Phases 1 and 2 are built; every other phase starts only when the owner says "start".
+> **Status:** v2, 19 November 2026. The owner's decisions are recorded in section 16. Phases 1, 2 and 3 are built; every other phase starts only when the owner says "start".
 >
 > **Not legal advice.** The law sections describe what the software will do to support each rule. A lawyer and a chartered accountant should check them before public launch.
 
@@ -186,18 +186,23 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
 
 ## 7. Feature designs
 
-### 7.1 Carpooling (Phase 3)
+### 7.1 Carpooling (Phase 3, built)
 
-- A driver adds a vehicle, then publishes a ride: from, to, optional stops, date and time, seats, price per seat, ladies-only or not, and instant or manual booking.
-- **Price cap.** The app suggests a fair price per seat based on distance and caps it, so rides stay cost-sharing rather than a taxi business. This matters for the legal position of pooling in private cars.
-- **Search.** Routes are stored as PostGIS lines. A ride matches when the passenger's pickup and drop points are both near the route (by default within 10 km) and the pickup comes before the drop along the route.
-- **Seats.** A booking locks the ride while it is saved, so two people can never get the last seat.
-- Phone numbers are shown only to confirmed co-travellers. Until then, everyone uses in-app chat.
+- **Cars.** A driver saves their car once: make, model, colour, passenger seats and registration number. The number is encrypted (AES-GCM); only the driver and passengers with a confirmed seat see it, so they can spot the car.
+- **Places.** A built-in list of 6,595 Indian towns with 5,000+ people (GeoNames, CC BY 4.0, attribution in the footer) is searched in memory. It finds official names, old names (Bombay, Madras, Gurgaon), nicknames (Vizag, Ooty) and names in Indian scripts (दिल्ली). No map or paid API is needed. `scripts/build_places.py` rebuilds the list.
+- **Offering a ride.** Start, up to 6 stops, end; date and time (Indian time); car and seats; price; instant booking or approve each request; ladies-only (women drivers only); a note. Towns on the way are suggested as stops. Distance is the straight line × 1.25 and time assumes 52 km/h plus 5 minutes per stop; both are shown as "about". A real road router (e.g. OSRM) can replace this later without changing the rest.
+- **Price cap.** Suggested ₹2/km, never above ₹3.5/km (minimum ₹20), so rides stay cost-sharing rather than a taxi business. Part of a route costs its share of the distance, rounded to ₹10. All of this is in `app.rides.*` settings.
+- **Search.** A ride matches when one of its stops is within 30 km of where the passenger starts and a later stop is within 30 km of where they are going (PostGIS on the stops), on the chosen day. When that day is empty, nearby days with rides are suggested. Shared links can use names: `/search?from=Delhi&to=Jaipur`.
+- **Seats** are counted per stretch, so a seat freed at a stop can be sold again for the rest of the trip. Every booking change locks the ride row, so two people can never get the last seat. A request holds its seats until the driver answers; unanswered requests expire after 12 hours or at pickup time.
+- **Contact.** Phone numbers (with Call and WhatsApp buttons) are shown only between the driver and passengers with a confirmed seat, while the ride is upcoming. In-app chat comes in Phase 4.
+- **Ladies-only rides** are offered by women and shown only to women (switch `rides.ladies_only`). Phase 4 adds ID verification as a requirement.
+- **Staff** see every ride in the console (Rides page and dashboard numbers) and can cancel one with a reason and a fresh 2FA code; it is recorded in the audit log.
 
 ```
- REQUESTED ──driver accepts──► CONFIRMED ──departure──► IN_PROGRESS ──► COMPLETED ──► reviews
-     │   └──declined / expired──► DECLINED       │
-     └──passenger cancels──► CANCELLED ◄──cancel (refund by policy)
+ REQUESTED ──driver accepts──► CONFIRMED ──3 h after arrival──► COMPLETED   (→ reviews in Phase 4)
+     ├──driver declines──► DECLINED (no second request for that ride)
+     ├──no answer in 12 h / pickup time passes──► EXPIRED
+     └──passenger cancels, or the ride is cancelled by the driver or staff──► CANCELLED
  (Instant booking goes straight to CONFIRMED.)
 ```
 
@@ -400,7 +405,7 @@ frontend/src/app/
 |---|---|---|
 | 1 ✓ | Setup, phone login, profiles, home page | Done |
 | 2 ✓ | **Owner control centre**: super admin, staff roles, 2FA, feature switches, audit log, member management | Done |
-| 3 | **Carpooling**: vehicles, place search, publish/search/book rides, price cap | 4–5 |
+| 3 ✓ | **Carpooling**: vehicles, place search, publish/search/book rides, price cap | Done |
 | 4 | **Trust, safety and privacy**: chat, reviews, verification, SOS, trip sharing, reports, privacy centre, legal pages, help tickets | 4–5 |
 | 5 | **Payments and wallet**: Razorpay, refunds, ledger, credits, payouts | 3 |
 | 6 | **Car rentals**: self-drive and with driver | 5–6 |

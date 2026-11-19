@@ -1,0 +1,304 @@
+<div class="container-page max-w-5xl py-6 sm:py-10">
+  <button type="button" class="btn btn-ghost btn-sm -ml-2 mb-3" (click)="back()"><app-icon name="arrowLeft" [size]="16" /> Back</button>
+
+  @if (problem(); as p) {
+    <section class="card mx-auto max-w-xl p-8 text-center" role="alert">
+      <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+        <app-icon [name]="p.code === 'ladies_only' ? 'woman' : 'route'" [size]="26" />
+      </span>
+      <h1 class="mt-4 text-xl font-bold">{{ p.code === 'ladies_only' ? 'A ride for women' : "We can't show this ride" }}</h1>
+      <p class="mt-2 text-slate-600 dark:text-slate-400">{{ p.detail }}</p>
+      @if (p.code === 'ladies_only' && !auth.isLoggedIn()) {
+        <a routerLink="/login" [queryParams]="{ returnUrl: '/rides/' + id() }" class="btn btn-primary mt-5">Log in</a>
+      } @else {
+        <a routerLink="/search" class="btn btn-secondary mt-5">Find another ride</a>
+      }
+    </section>
+  } @else if (ride(); as r) {
+    <header class="mb-5 flex flex-wrap items-start justify-between gap-3 motion-safe:animate-fade-up">
+      <div>
+        <h1 class="text-2xl font-extrabold tracking-tight sm:text-3xl">{{ r.departureAt | date: 'EEEE, d MMMM' }}</h1>
+        <p class="mt-1 text-slate-600 dark:text-slate-400">
+          {{ r.stops[0].name }} → {{ r.stops[last()].name }} · about {{ r.distanceKm }} km · {{ fmtDuration(r.durationMin) }}
+        </p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          @if (r.status === 'CANCELLED') { <span class="badge tone-danger"><app-icon name="ban" [size]="13" /> Cancelled</span> }
+          @if (r.status === 'COMPLETED') { <span class="badge tone-muted"><app-icon name="checkCircle" [size]="13" /> Completed</span> }
+          @if (r.instantBooking) {
+            <span class="badge tone-success"><app-icon name="sparkles" [size]="13" /> Instant booking</span>
+          } @else {
+            <span class="badge tone-muted"><app-icon name="clock" [size]="13" /> Driver approves requests</span>
+          }
+          @if (r.ladiesOnly) { <span class="badge bg-pink-50 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300"><app-icon name="woman" [size]="13" /> Ladies only</span> }
+        </div>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" (click)="share()"><app-icon name="external" [size]="16" /> Share</button>
+    </header>
+
+    @if (r.status === 'CANCELLED') {
+      <div class="mb-5 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200" role="status">
+        <app-icon name="info" />
+        <p>
+          This ride was cancelled{{ r.cancelledBy === 'STAFF' ? ' by SaathChalo' : r.cancelledBy === 'DRIVER' ? ' by the driver' : '' }}.
+          @if (r.cancelReason) { <span class="block font-semibold">“{{ r.cancelReason }}”</span> }
+        </p>
+      </div>
+    }
+
+    <div class="grid gap-5 lg:grid-cols-[1fr_22rem]">
+      <!-- Route -->
+      <section class="card p-5 sm:p-6 lg:col-start-1" aria-labelledby="route-heading">
+        <h2 id="route-heading" class="sr-only">Route</h2>
+        <ol>
+          @for (s of r.stops; track s.position; let lastStop = $last) {
+            <li class="flex gap-4" [class.opacity-50]="!inStretch(s.position)">
+              <time class="w-[4.75rem] shrink-0 pt-0.5 text-right text-sm font-bold whitespace-nowrap" [attr.datetime]="s.at">{{ s.at | date: 'h:mm a' }}</time>
+              <div class="relative flex min-w-0 flex-1 gap-3" [class.pb-6]="!lastStop">
+                <span class="route-dot" [class.route-dot-on]="inStretch(s.position)"></span>
+                @if (!lastStop) { <span class="route-line" [class.route-line-on]="inStretch(s.position) && s.position < toPos()"></span> }
+                <div class="min-w-0">
+                  <p class="font-bold">{{ s.name }} @if (s.state !== s.name) { <span class="text-sm font-normal text-slate-500 dark:text-slate-400">{{ s.state }}</span> }</p>
+                  @if (s.meetingPoint) {
+                    <p class="mt-0.5 flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400"><app-icon name="pin" [size]="14" /> {{ s.meetingPoint }}</p>
+                  }
+                  @if (s.position === fromPos() && r.viewer !== 'DRIVER') { <span class="badge tone-success mt-1">You get in</span> }
+                  @if (s.position === toPos() && r.viewer !== 'DRIVER') { <span class="badge tone-success mt-1">You get out</span> }
+                </div>
+              </div>
+            </li>
+          }
+        </ol>
+        <p class="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+          Times after the start are estimates. Distances are approximate.
+        </p>
+      </section>
+
+      <!-- Booking panel / driver panel -->
+      <aside id="book" class="lg:sticky lg:top-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start" aria-label="Booking">
+        <div class="card p-5 sm:p-6">
+          @if (r.viewer === 'DRIVER') {
+            <p class="kicker">Your ride</p>
+            <p class="mt-2 text-3xl font-extrabold tracking-tight">{{ fmtRupees(r.pricePerSeat) }} <span class="text-base font-medium text-slate-500">per seat</span></p>
+            <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div class="rounded-2xl bg-slate-50 p-3 dark:bg-slate-800/60"><dt class="text-slate-500 dark:text-slate-400">Seats booked</dt><dd class="text-lg font-bold">{{ seatsBooked() }} / {{ r.seatsTotal }}</dd></div>
+              <div class="rounded-2xl bg-slate-50 p-3 dark:bg-slate-800/60"><dt class="text-slate-500 dark:text-slate-400">Requests</dt><dd class="text-lg font-bold">{{ requests().length }}</dd></div>
+            </dl>
+            @if (isUpcoming()) {
+              @if (cancellingRide()) {
+                <div class="mt-5 space-y-3 rounded-2xl border border-rose-200 p-4 dark:border-rose-500/30">
+                  <label for="cancel-reason" class="label">Tell your passengers why (optional)</label>
+                  <textarea id="cancel-reason" class="input min-h-20" maxlength="300" [value]="cancelReason()" (input)="cancelReason.set($any($event.target).value)"
+                            placeholder="e.g. My plans changed, sorry!"></textarea>
+                  <div class="flex gap-2">
+                    <button type="button" class="btn btn-ghost flex-1" (click)="cancellingRide.set(false)" [disabled]="busy()">Keep ride</button>
+                    <button type="button" class="btn flex-1 bg-rose-600 text-white hover:bg-rose-700" (click)="cancelRide()" [disabled]="busy()">Cancel ride</button>
+                  </div>
+                </div>
+              } @else {
+                <button type="button" class="btn btn-ghost mt-5 w-full text-rose-600 dark:text-rose-400" (click)="cancellingRide.set(true)">
+                  <app-icon name="ban" [size]="18" /> Cancel this ride
+                </button>
+              }
+            }
+          } @else if (liveBooking(); as b) {
+            <span class="badge" [class]="'tone-' + myStatus()!.tone">{{ myStatus()!.text }}</span>
+            <p class="mt-3 text-lg font-bold">{{ b.fromName }} → {{ b.toName }}</p>
+            <p class="text-sm text-slate-600 dark:text-slate-400">{{ b.seats }} {{ b.seats === 1 ? 'seat' : 'seats' }} · {{ fmtRupees(b.total) }} to pay the driver</p>
+            @if (b.status === 'REQUESTED') {
+              <p class="mt-4 rounded-2xl bg-accent-100/60 p-3 text-sm dark:bg-accent-600/10">
+                {{ r.driver.profile.displayName }} will accept or decline your request.
+                @if (b.expiresAt) { It lapses at {{ b.expiresAt | date: 'h:mm a, d MMM' }} if there's no answer. }
+              </p>
+            }
+            @if (r.driver.phone) {
+              <p class="kicker mt-5 mb-2">Contact {{ r.driver.profile.displayName }}</p>
+              <div class="grid grid-cols-2 gap-2">
+                <a class="btn btn-secondary" [href]="'tel:' + r.driver.phone"><app-icon name="phone" [size]="18" /> Call</a>
+                <a class="btn btn-secondary" [href]="waLink(r.driver.phone)" target="_blank" rel="noopener noreferrer"><app-icon name="chat" [size]="18" /> WhatsApp</a>
+              </div>
+              <p class="hint">{{ r.driver.phone | phone }}</p>
+            }
+            @if (confirmCancelBooking()) {
+              <div class="mt-5 rounded-2xl border border-rose-200 p-4 text-sm dark:border-rose-500/30">
+                <p class="font-semibold">Cancel your booking?</p>
+                <p class="mt-1 text-slate-600 dark:text-slate-400">Your seat goes back to other travellers.</p>
+                <div class="mt-3 flex gap-2">
+                  <button type="button" class="btn btn-ghost flex-1" (click)="confirmCancelBooking.set(false)" [disabled]="busy()">Keep it</button>
+                  <button type="button" class="btn flex-1 bg-rose-600 text-white hover:bg-rose-700" (click)="cancelMyBooking()" [disabled]="busy()">Yes, cancel</button>
+                </div>
+              </div>
+            } @else if (isUpcoming()) {
+              <button type="button" class="btn btn-ghost mt-5 w-full text-rose-600 dark:text-rose-400" (click)="confirmCancelBooking.set(true)">Cancel my booking</button>
+            }
+          } @else {
+            @if (r.myBooking && myStatus(); as st) {
+              <p class="mb-4 flex items-center gap-2 text-sm"><span class="badge" [class]="'tone-' + st.tone">{{ st.text }}</span></p>
+            }
+            <p class="text-3xl font-extrabold tracking-tight">{{ fmtRupees(price()) }} <span class="text-base font-medium text-slate-500">per seat</span></p>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ stopName(fromPos()) }} → {{ stopName(toPos()) }}</p>
+
+            @if (canBook()) {
+              @if (r.stops.length > 2) {
+                <div class="mt-4 grid grid-cols-2 gap-2">
+                  <div>
+                    <label for="get-in" class="label text-xs">Get in at</label>
+                    <select id="get-in" class="input px-3 py-2.5 text-sm" [value]="fromPos()" (change)="setFrom($any($event.target).value)">
+                      @for (s of r.stops; track s.position) {
+                        @if (s.position < last()) { <option [value]="s.position" [selected]="s.position === fromPos()">{{ s.name }}</option> }
+                      }
+                    </select>
+                  </div>
+                  <div>
+                    <label for="get-out" class="label text-xs">Get out at</label>
+                    <select id="get-out" class="input px-3 py-2.5 text-sm" [value]="toPos()" (change)="setTo($any($event.target).value)">
+                      @for (s of r.stops; track s.position) {
+                        @if (s.position > fromPos()) { <option [value]="s.position" [selected]="s.position === toPos()">{{ s.name }}</option> }
+                      }
+                    </select>
+                  </div>
+                </div>
+              }
+              <div class="mt-4 flex items-center justify-between rounded-2xl bg-slate-50 p-3 dark:bg-slate-800/60">
+                <span>
+                  <span class="block text-sm font-semibold" id="seats-label">Seats</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">{{ seatsLeft() }} left for this stretch</span>
+                </span>
+                <span class="flex items-center gap-3" role="group" aria-labelledby="seats-label">
+                  <button type="button" class="stepper-btn" (click)="seatsWanted.set(seatsWanted() - 1)" [disabled]="seatsWanted() <= 1" aria-label="Fewer seats"><app-icon name="minus" [size]="16" /></button>
+                  <span class="w-4 text-center text-lg font-bold" aria-live="polite">{{ seatsWanted() }}</span>
+                  <button type="button" class="stepper-btn" (click)="seatsWanted.set(seatsWanted() + 1)" [disabled]="seatsWanted() >= maxSeats()" aria-label="More seats"><app-icon name="plus" [size]="16" /></button>
+                </span>
+              </div>
+              <label for="msg" class="label mt-4">Message to {{ r.driver.profile.displayName }} <span class="font-normal text-slate-500">(optional)</span></label>
+              <textarea id="msg" class="input min-h-20 text-sm" maxlength="300" [value]="message()" (input)="message.set($any($event.target).value)"
+                        placeholder="Hi! Where exactly can you pick me up?"></textarea>
+              <div class="mt-4 flex items-center justify-between text-sm">
+                <span class="text-slate-600 dark:text-slate-400">Total, paid to the driver</span>
+                <span class="text-lg font-extrabold">{{ fmtRupees(price() * seatsWanted()) }}</span>
+              </div>
+              @if (features.isOn('rides.booking')) {
+                <button type="button" class="btn btn-primary mt-4 w-full py-3.5 text-base" (click)="book()" [disabled]="busy()">
+                  @if (busy()) { Booking… }
+                  @else if (!auth.isLoggedIn()) { Log in to book }
+                  @else if (r.instantBooking) { <app-icon name="sparkles" [size]="18" /> Book {{ seatsWanted() === 1 ? 'seat' : seatsWanted() + ' seats' }} }
+                  @else { Request to book }
+                </button>
+                <p class="hint text-center">
+                  @if (r.instantBooking) { Your seat is confirmed straight away. } @else { The driver accepts or declines your request. }
+                  You pay the driver directly (cash or UPI).
+                </p>
+              } @else {
+                <p class="mt-4 text-sm text-slate-500">Booking is paused right now. Please check again later.</p>
+              }
+            } @else if (isUpcoming()) {
+              <p class="mt-4 rounded-2xl bg-slate-50 p-3 text-sm text-slate-600 dark:bg-slate-800/60 dark:text-slate-400">
+                @if (r.myBooking?.status === 'DECLINED') { The driver declined your request for this ride. }
+                @else if (pickupPassed()) { This ride has already left {{ stopName(fromPos()) }}. }
+                @else { This ride is full for this stretch. }
+              </p>
+              <a routerLink="/search" class="btn btn-secondary mt-3 w-full">Find another ride</a>
+            }
+          }
+        </div>
+      </aside>
+
+      <!-- Driver, car and passengers -->
+      <div class="space-y-5 lg:col-start-1">
+        <section class="card p-5 sm:p-6" aria-labelledby="driver-heading">
+          <h2 id="driver-heading" class="kicker mb-4">Driver</h2>
+          <a [routerLink]="['/u', r.driver.profile.id]" class="flex items-center gap-4 rounded-2xl transition hover:opacity-90">
+            <app-avatar [url]="r.driver.profile.avatarUrl" [name]="r.driver.profile.displayName" [size]="56" />
+            <span class="min-w-0">
+              <span class="flex items-center gap-1.5 text-lg font-bold">{{ r.driver.profile.displayName }}
+                @if (r.driver.profile.idVerified) { <app-icon name="shield" [size]="18" class="text-brand-600" /> }
+              </span>
+              <span class="block text-sm text-slate-500 dark:text-slate-400">
+                @if (r.driver.profile.age) { {{ r.driver.profile.age }} y/o · }
+                @if (r.driver.ridesCompleted > 0) { {{ r.driver.ridesCompleted }} {{ r.driver.ridesCompleted === 1 ? 'ride' : 'rides' }} driven } @else { New driver }
+                · member since {{ r.driver.profile.memberSince | date: 'MMM y' }}
+              </span>
+            </span>
+            <app-icon name="arrowRight" [size]="18" class="ml-auto text-slate-400" />
+          </a>
+          @if (r.driver.profile.bio) { <p class="mt-4 text-slate-700 dark:text-slate-300">{{ r.driver.profile.bio }}</p> }
+          <div class="mt-4 flex flex-wrap gap-2 text-sm">
+            <span class="chip pointer-events-none py-1.5">{{ chatOption(r.driver.profile.prefChat).emoji }} {{ chatOption(r.driver.profile.prefChat).long }}</span>
+            @for (b of prefBadges(r.driver.profile); track b.icon) {
+              <span class="chip pointer-events-none py-1.5"><app-icon [name]="b.icon" [size]="15" /> {{ b.text }}</span>
+            }
+            @if (r.driver.profile.phoneVerified) { <span class="chip pointer-events-none py-1.5"><app-icon name="checkCircle" [size]="15" class="text-brand-600" /> Phone verified</span> }
+          </div>
+          @if (r.car; as car) {
+            <div class="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
+              <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"><app-icon name="car" [size]="20" /></span>
+              <span>
+                <span class="block font-semibold">{{ car.make }} {{ car.model }}</span>
+                @if (car.color) { <span class="block text-sm text-slate-500 dark:text-slate-400">{{ car.color }}</span> }
+              </span>
+              @if (car.plate) { <span class="ml-auto rounded-lg border-2 border-slate-900 bg-white px-2 py-0.5 font-mono text-sm font-bold tracking-wider text-slate-900 dark:border-slate-200">{{ car.plate }}</span> }
+            </div>
+          }
+          @if (r.notes) {
+            <blockquote class="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+              <span class="kicker mb-1 block">Note from the driver</span>{{ r.notes }}
+            </blockquote>
+          }
+        </section>
+
+        @if (r.viewer === 'DRIVER' && requests().length) {
+          <section class="card border-accent-300 p-5 sm:p-6 dark:border-accent-600/40" aria-labelledby="requests-heading">
+            <h2 id="requests-heading" class="kicker mb-4">Waiting for your answer</h2>
+            <ul class="space-y-4">
+              @for (p of requests(); track p.bookingId) {
+                <li class="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/60">
+                  <div class="flex items-center gap-3">
+                    <a [routerLink]="['/u', p.member.id]"><app-avatar [url]="p.member.avatarUrl" [name]="p.member.displayName" [size]="44" /></a>
+                    <span class="min-w-0 flex-1">
+                      <span class="block font-semibold">{{ p.member.displayName }}</span>
+                      <span class="block text-sm text-slate-500 dark:text-slate-400">{{ passengerStretch(p) }} · {{ p.seats }} {{ p.seats === 1 ? 'seat' : 'seats' }} · {{ fmtRupees(p.seats * p.pricePerSeat) }}</span>
+                    </span>
+                  </div>
+                  @if (p.message) { <p class="mt-3 rounded-xl bg-white p-3 text-sm dark:bg-slate-900">“{{ p.message }}”</p> }
+                  <div class="mt-3 grid grid-cols-2 gap-2">
+                    <button type="button" class="btn btn-secondary" (click)="answer(p, false)" [disabled]="busy()">Decline</button>
+                    <button type="button" class="btn btn-primary" (click)="answer(p, true)" [disabled]="busy()"><app-icon name="check" [size]="18" /> Accept</button>
+                  </div>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        <section class="card p-5 sm:p-6" aria-labelledby="passengers-heading">
+          <h2 id="passengers-heading" class="kicker mb-4">Passengers</h2>
+          @if (confirmed().length) {
+            <ul class="space-y-3">
+              @for (p of confirmed(); track p.bookingId) {
+                <li class="flex flex-wrap items-center gap-3">
+                  <a [routerLink]="['/u', p.member.id]"><app-avatar [url]="p.member.avatarUrl" [name]="p.member.displayName" [size]="40" /></a>
+                  <span class="min-w-0 flex-1">
+                    <span class="block font-semibold">{{ p.member.displayName }} @if (p.seats > 1) { <span class="font-normal text-slate-500">+{{ p.seats - 1 }}</span> }</span>
+                    <span class="block text-sm text-slate-500 dark:text-slate-400">{{ passengerStretch(p) }}</span>
+                  </span>
+                  @if (p.phone) {
+                    <span class="flex gap-2">
+                      <a class="btn btn-secondary btn-sm" [href]="'tel:' + p.phone" [attr.aria-label]="'Call ' + p.member.displayName"><app-icon name="phone" [size]="16" /> {{ p.phone | phone }}</a>
+                      <a class="btn btn-secondary btn-sm" [href]="waLink(p.phone)" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'WhatsApp ' + p.member.displayName"><app-icon name="chat" [size]="16" /></a>
+                    </span>
+                  }
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="text-sm text-slate-500 dark:text-slate-400">No passengers yet{{ r.viewer === 'DRIVER' && isUpcoming() ? '. Share your ride to fill your seats faster.' : '.' }}</p>
+          }
+        </section>
+      </div>
+    </div>
+  } @else {
+    <div class="grid gap-5 lg:grid-cols-[1fr_22rem]" aria-busy="true">
+      <div class="card p-6"><div class="skeleton h-7 w-1/2"></div><div class="skeleton mt-6 h-5 w-2/3"></div><div class="skeleton mt-4 h-5 w-1/2"></div><div class="skeleton mt-4 h-5 w-3/5"></div></div>
+      <div class="card p-6"><div class="skeleton h-9 w-1/2"></div><div class="skeleton mt-6 h-12 w-full"></div></div>
+    </div>
+  }
+</div>

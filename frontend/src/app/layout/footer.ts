@@ -22,6 +22,7 @@ import { Logo } from '../shared/logo';
         <ul class="mt-3 space-y-2 text-sm text-slate-500 dark:text-slate-400">
           <li><a routerLink="/search" class="hover:text-brand-600 dark:hover:text-brand-400">Find a ride</a></li>
           <li><a routerLink="/publish" class="hover:text-brand-600 dark:hover:text-brand-400">Offer a ride</a></li>
+          <li><a routerLink="/my-rides" class="hover:text-brand-600 dark:hover:text-brand-400">My rides</a></li>
           <li><a routerLink="/profile" class="hover:text-brand-600 dark:hover:text-brand-400">My profile</a></li>
         </ul>
       </div>
@@ -39,7 +40,11 @@ import { Logo } from '../shared/logo';
       </div>
     </div>
     <div class="border-t border-slate-100 dark:border-slate-900">
-      <p class="container-page py-5 text-xs text-slate-400">© {{ year }} SaathChalo · Made with ❤️ in India</p>
+      <p class="container-page py-5 text-xs text-slate-400">
+        © {{ year }} SaathChalo · Made with ❤️ in India ·
+        Place names from <a href="https://www.geonames.org/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600 dark:hover:text-slate-300">GeoNames</a>
+        (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600 dark:hover:text-slate-300">CC BY 4.0</a>)
+      </p>
     </div>
   `,
 })

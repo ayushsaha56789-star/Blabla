@@ -169,4 +169,28 @@
 
   .badge-danger { @apply bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300; }
   .badge-warning { @apply bg-accent-100 text-accent-600 dark:bg-accent-600/15 dark:text-accent-300; }
+
+  /* Borderless inputs inside the big search bar. */
+  .field-input {
+    @apply w-full min-w-0 bg-transparent text-base font-semibold text-slate-900 outline-none placeholder:font-medium
+      placeholder:text-slate-400 dark:text-slate-100;
+  }
+
+  /* Small round +/− buttons. */
+  .stepper-btn {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition
+      hover:border-brand-500 hover:text-brand-600 disabled:pointer-events-none disabled:opacity-35
+      dark:border-slate-700 dark:text-slate-300;
+  }
+
+  /* A ride's route drawn as a vertical line between two or more stops. */
+  .route-dot { @apply relative z-10 mt-1.5 h-3 w-3 shrink-0 rounded-full border-[2.5px] border-slate-900 bg-white dark:border-slate-100 dark:bg-slate-950; }
+  .route-dot-on { @apply border-brand-600 dark:border-brand-400; }
+  .route-line { @apply absolute top-4 bottom-[-0.5rem] left-[5px] w-[2.5px] rounded-full bg-slate-900 dark:bg-slate-100; }
+  .route-line-on { @apply bg-brand-600 dark:bg-brand-400; }
+
+  .tone-success { @apply bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300; }
+  .tone-warning { @apply bg-accent-100 text-accent-600 dark:bg-accent-600/15 dark:text-accent-300; }
+  .tone-danger { @apply bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300; }
+  .tone-muted { @apply bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400; }
 }

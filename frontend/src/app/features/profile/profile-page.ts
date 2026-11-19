@@ -12,16 +12,19 @@ import { Avatar } from '../../shared/avatar';
 import { Icon, IconName } from '../../shared/icon';
 import { PhonePipe } from '../../shared/phone.pipe';
 import { CHAT_OPTIONS } from './prefs';
+import { MyCars } from './my-cars';
+import { FeaturesService } from '../../core/features.service';
 import { POPULAR_CITIES } from '../../core/cities';
 
 @Component({
   selector: 'app-profile-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, DatePipe, Avatar, Icon, PhonePipe],
+  imports: [ReactiveFormsModule, RouterLink, DatePipe, Avatar, Icon, PhonePipe, MyCars],
   templateUrl: './profile-page.html',
 })
 export class ProfilePage {
   protected readonly auth = inject(AuthService);
+  protected readonly features = inject(FeaturesService);
   private readonly api = inject(UserApi);
   private readonly toast = inject(ToastService);
 

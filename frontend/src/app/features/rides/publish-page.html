@@ -1,0 +1,304 @@
+<div class="container-page max-w-5xl py-6 pb-28 sm:py-10 lg:pb-10">
+  @if (published(); as ride) {
+    <!-- Success -->
+    <section class="card mx-auto max-w-xl p-8 text-center motion-safe:animate-fade-up sm:p-10">
+      <span class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/30">
+        <app-icon name="check" [size]="32" />
+      </span>
+      <h1 class="mt-5 text-3xl font-extrabold tracking-tight">Your ride is live!</h1>
+      <p class="mt-2 text-slate-600 dark:text-slate-400">
+        {{ ride.stops[0].name }} → {{ ride.stops[ride.stops.length - 1].name }} on {{ ride.departureAt | date: 'EEE, d MMM, h:mm a' }}.
+        Passengers can find and book it now.
+      </p>
+      <div class="mt-7 grid gap-2 sm:grid-cols-2">
+        <a [routerLink]="['/rides', ride.id]" class="btn btn-primary">View my ride</a>
+        <button type="button" class="btn btn-secondary" (click)="share()"><app-icon name="external" [size]="18" /> Share it</button>
+        <button type="button" class="btn btn-secondary" (click)="offerReturn()"><app-icon name="swap" [size]="18" /> Offer the return trip</button>
+        <button type="button" class="btn btn-ghost" (click)="offerAnother()">Offer another ride</button>
+      </div>
+      <p class="mt-6 text-sm text-slate-500 dark:text-slate-400">Tip: sharing your ride on WhatsApp groups fills seats faster.</p>
+    </section>
+  } @else {
+    <header class="mb-6">
+      <p class="kicker">Offer a ride</p>
+      <h1 class="mt-1 text-3xl font-extrabold tracking-tight">Share your empty seats</h1>
+      <p class="mt-1 text-slate-600 dark:text-slate-400">Travelling anyway? Split the fuel and toll costs with people going your way.</p>
+    </header>
+
+    <!-- Progress -->
+    <nav aria-label="Steps" class="mb-6">
+      <ol class="flex gap-1.5">
+        @for (s of steps; track s.key; let i = $index) {
+          <li class="flex-1">
+            <button type="button" class="w-full text-left" (click)="go(s.key)" [attr.aria-current]="step() === s.key ? 'step' : null" [disabled]="i > stepIndex()">
+              <span class="block h-1.5 rounded-full transition" [class]="i <= stepIndex() ? 'bg-brand-600 dark:bg-brand-400' : 'bg-slate-200 dark:bg-slate-800'"></span>
+              <span class="mt-1.5 block text-xs font-semibold" [class]="i === stepIndex() ? 'text-slate-900 dark:text-white' : 'text-slate-500 max-sm:sr-only'">{{ i + 1 }}. {{ s.label }}</span>
+            </button>
+          </li>
+        }
+      </ol>
+    </nav>
+
+    <div class="grid gap-6 lg:grid-cols-[1fr_20rem]">
+      <section class="card p-5 motion-safe:animate-fade-up sm:p-7" aria-live="polite">
+        @switch (step()) {
+          @case ('route') {
+            <h2 class="text-xl font-bold">Where are you going?</h2>
+            <div class="mt-5 space-y-3">
+              <div>
+                <label for="from-input" class="label">Leaving from</label>
+                <app-place-input inputId="from-input" [(value)]="from" [allowLocation]="true" [exclude]="usedIds()" />
+              </div>
+              <div class="flex justify-center">
+                <button type="button" class="btn btn-ghost btn-sm" (click)="swapEnds()" aria-label="Swap start and destination"><app-icon name="swap" [size]="16" /> Swap</button>
+              </div>
+              <div>
+                <label for="to-input" class="label">Going to</label>
+                <app-place-input inputId="to-input" [(value)]="to" [exclude]="usedIds()" />
+              </div>
+            </div>
+
+            @if (from() && to()) {
+              <div class="mt-7">
+                <h3 class="font-bold">Stops on the way <span class="font-normal text-slate-500">(optional)</span></h3>
+                <p class="hint mt-0.5">Add towns you pass through. Passengers there can book the part of the trip they need.</p>
+                @if (stops().length) {
+                  <ul class="mt-3 space-y-2">
+                    @for (s of stops(); track s.place.id; let i = $index) {
+                      <li class="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-2.5 dark:bg-slate-800/60">
+                        <app-icon name="pin" [size]="16" class="text-slate-400" />
+                        <span class="min-w-0 flex-1"><b>{{ s.place.name }}</b>@if (s.place.state !== s.place.name) {<span class="ml-1.5 text-sm text-slate-500 dark:text-slate-400">{{ s.place.state }}</span>}</span>
+                        <button type="button" class="btn btn-ghost btn-icon" (click)="removeStop(i)" [attr.aria-label]="'Remove ' + s.place.name"><app-icon name="close" [size]="16" /></button>
+                      </li>
+                    }
+                  </ul>
+                }
+                @if (openSuggestions().length && stops().length < 6) {
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    @for (p of openSuggestions(); track p.id) {
+                      <button type="button" class="chip py-1.5" (click)="addStop(p)"><app-icon name="plus" [size]="14" /> {{ p.name }}</button>
+                    }
+                  </div>
+                }
+                @if (stops().length < 6) {
+                  <div class="mt-3">
+                    <app-place-input [(value)]="newStop" placeholder="Add another stop" ariaLabel="Add a stop" [exclude]="usedIds()" />
+                  </div>
+                }
+              </div>
+
+              <div class="mt-6">
+                <button type="button" class="btn btn-ghost btn-sm -ml-2" (click)="showMeetingPoints.set(!showMeetingPoints())" [attr.aria-expanded]="showMeetingPoints()">
+                  <app-icon name="pin" [size]="16" /> {{ showMeetingPoints() ? 'Hide meeting points' : 'Add exact meeting points' }}
+                  <app-icon name="chevronDown" [size]="14" [class.rotate-180]="showMeetingPoints()" />
+                </button>
+                @if (showMeetingPoints()) {
+                  <div class="mt-3 space-y-3">
+                    <div>
+                      <label for="mp-from" class="label text-xs">In {{ from()!.name }}</label>
+                      <input id="mp-from" class="input" maxlength="160" placeholder="e.g. Kashmere Gate metro, gate 2" [value]="fromMeeting()" (input)="fromMeeting.set($any($event.target).value)" />
+                    </div>
+                    @for (s of stops(); track s.place.id; let i = $index) {
+                      <div>
+                        <label [for]="'mp-' + i" class="label text-xs">In {{ s.place.name }}</label>
+                        <input [id]="'mp-' + i" class="input" maxlength="160" placeholder="e.g. the toll plaza bus stop" [value]="s.meetingPoint" (input)="setStopMeeting(i, $any($event.target).value)" />
+                      </div>
+                    }
+                    <div>
+                      <label for="mp-to" class="label text-xs">In {{ to()!.name }}</label>
+                      <input id="mp-to" class="input" maxlength="160" placeholder="e.g. Sindhi Camp bus stand" [value]="toMeeting()" (input)="toMeeting.set($any($event.target).value)" />
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          }
+
+          @case ('when') {
+            <h2 class="text-xl font-bold">When are you leaving?</h2>
+            <div class="mt-5 flex flex-wrap gap-2">
+              <button type="button" class="chip" [class.chip-on]="date() === today" (click)="date.set(today)">Today</button>
+              <button type="button" class="chip" [class.chip-on]="date() === tomorrow" (click)="date.set(tomorrow)">Tomorrow</button>
+            </div>
+            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label for="ride-date" class="label">Date</label>
+                <input id="ride-date" type="date" class="input" [min]="today" [max]="lastDay" [value]="date()" (input)="date.set($any($event.target).value)" />
+              </div>
+              <div>
+                <label for="ride-time" class="label">Departure time</label>
+                <input id="ride-time" type="time" step="300" class="input" [value]="time()" (input)="time.set($any($event.target).value)" />
+              </div>
+            </div>
+            @if (arrival(); as a) {
+              <p class="mt-4 flex items-center gap-2 rounded-2xl bg-slate-50 p-3 text-sm dark:bg-slate-800/60">
+                <app-icon name="clock" [size]="16" class="text-slate-500" />
+                You should reach {{ to()?.name }} around <b>{{ a | date: 'h:mm a' }}</b>@if ((a | date: 'yyyy-MM-dd') !== date()) { the next day}.
+              </p>
+            }
+          }
+
+          @case ('car') {
+            <h2 class="text-xl font-bold">Your car and seats</h2>
+            @if (cars() === null) {
+              <div class="skeleton mt-5 h-20"></div>
+            } @else if (!cars()!.length || addingCar()) {
+              <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ cars()!.length ? 'Add another car.' : 'Add the car you drive. You only do this once.' }}</p>
+              <div class="mt-5">
+                <app-vehicle-form [cancellable]="!!cars()!.length" (saved)="onCarSaved($event)" (cancelled)="addingCar.set(false)" />
+              </div>
+            } @else {
+              <div class="mt-5 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Your cars">
+                @for (c of cars(); track c.id) {
+                  <button type="button" role="radio" [attr.aria-checked]="carId() === c.id" (click)="chooseCar(c)"
+                          class="flex items-center gap-3 rounded-2xl border-2 p-4 text-left transition"
+                          [class]="carId() === c.id ? 'border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-500/10' : 'border-slate-200 hover:border-slate-300 dark:border-slate-700'">
+                    <app-icon name="car" [size]="22" class="text-slate-500" />
+                    <span class="min-w-0">
+                      <span class="block font-semibold">{{ c.make }} {{ c.model }}</span>
+                      <span class="block text-sm text-slate-500 dark:text-slate-400">{{ c.color ? c.color + ' · ' : '' }}{{ c.plate }}</span>
+                    </span>
+                  </button>
+                }
+                <button type="button" class="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 p-4 font-semibold text-slate-600 transition hover:border-brand-500 hover:text-brand-700 dark:border-slate-700 dark:text-slate-300"
+                        (click)="addingCar.set(true)">
+                  <app-icon name="plus" [size]="18" /> Add a car
+                </button>
+              </div>
+              @if (car(); as c) {
+                <div class="mt-6 flex items-center justify-between rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/60">
+                  <span>
+                    <span class="block font-semibold" id="seat-count">Seats to offer</span>
+                    <span class="text-sm text-slate-500 dark:text-slate-400">Your {{ c.model }} takes up to {{ c.seats }}</span>
+                  </span>
+                  <span class="flex items-center gap-3" role="group" aria-labelledby="seat-count">
+                    <button type="button" class="stepper-btn" (click)="seats.set(seats() - 1)" [disabled]="seats() <= 1" aria-label="Fewer seats"><app-icon name="minus" [size]="16" /></button>
+                    <span class="w-5 text-center text-xl font-bold" aria-live="polite">{{ seats() }}</span>
+                    <button type="button" class="stepper-btn" (click)="seats.set(seats() + 1)" [disabled]="seats() >= c.seats" aria-label="More seats"><app-icon name="plus" [size]="16" /></button>
+                  </span>
+                </div>
+                <p class="hint">Tip: two people in the back is more comfortable on long trips.</p>
+              }
+            }
+          }
+
+          @case ('price') {
+            <h2 class="text-xl font-bold">Price per seat</h2>
+            @if (quote(); as q) {
+              <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">For the whole trip, about {{ q.distanceKm }} km. We suggest <b>{{ fmtRupees(q.suggestedPrice) }}</b>, a fair share of fuel and tolls.</p>
+              <div class="mt-6 flex items-center justify-center gap-3">
+                <button type="button" class="stepper-btn h-11 w-11" (click)="nudgePrice(-50)" [disabled]="(price() ?? 0) <= q.minPrice" aria-label="₹50 less">−50</button>
+                <button type="button" class="stepper-btn h-11 w-11" (click)="nudgePrice(-10)" [disabled]="(price() ?? 0) <= q.minPrice" aria-label="₹10 less"><app-icon name="minus" [size]="16" /></button>
+                <label class="relative">
+                  <span class="sr-only">Price per seat in rupees</span>
+                  <span class="absolute top-1/2 left-4 -translate-y-1/2 text-2xl font-bold text-slate-400">₹</span>
+                  <input type="number" inputmode="numeric" class="input w-40 py-4 pl-10 text-center text-3xl font-extrabold" [min]="q.minPrice" [max]="q.maxPrice" step="10"
+                         [value]="price()" (change)="setPrice(+$any($event.target).value)" />
+                </label>
+                <button type="button" class="stepper-btn h-11 w-11" (click)="nudgePrice(10)" [disabled]="(price() ?? 0) >= q.maxPrice" aria-label="₹10 more"><app-icon name="plus" [size]="16" /></button>
+                <button type="button" class="stepper-btn h-11 w-11" (click)="nudgePrice(50)" [disabled]="(price() ?? 0) >= q.maxPrice" aria-label="₹50 more">+50</button>
+              </div>
+              <p class="mt-3 text-center text-sm">
+                @if (price() === q.suggestedPrice) { <span class="badge tone-success"><app-icon name="checkCircle" [size]="13" /> Recommended price</span> }
+                @else if ((price() ?? 0) > q.suggestedPrice * 1.3) { <span class="badge tone-warning">Higher prices get fewer bookings</span> }
+                @else if ((price() ?? 0) < q.suggestedPrice * 0.7) { <span class="badge tone-muted">Very generous!</span> }
+              </p>
+              <p class="hint text-center">Between {{ fmtRupees(q.minPrice) }} and {{ fmtRupees(q.maxPrice) }}. The upper limit keeps SaathChalo about sharing costs.</p>
+              @if (stretchPrices().length) {
+                <div class="mt-6 rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/60">
+                  <p class="kicker mb-2">Passengers on part of the trip pay</p>
+                  <ul class="space-y-1 text-sm">
+                    @for (row of stretchPrices(); track row.label) {
+                      <li class="flex justify-between gap-3"><span>{{ row.label }}</span><b>{{ fmtRupees(row.price) }}</b></li>
+                    }
+                  </ul>
+                </div>
+              }
+            }
+          }
+
+          @case ('review') {
+            <h2 class="text-xl font-bold">Almost there</h2>
+            <ul class="mt-5 divide-y divide-slate-100 dark:divide-slate-800">
+              <li class="flex items-center justify-between gap-4 py-3">
+                <span id="instant-label">
+                  <span class="block font-semibold">Instant booking</span>
+                  <span class="block text-sm text-slate-500 dark:text-slate-400">{{ instant() ? 'Passengers get a seat straight away.' : 'You accept or decline each request.' }}</span>
+                </span>
+                <button type="button" role="switch" class="switch" [attr.aria-checked]="instant()" aria-labelledby="instant-label" (click)="instant.set(!instant())"><span class="switch-knob"></span></button>
+              </li>
+              @if (canLadiesOnly()) {
+                <li class="flex items-center justify-between gap-4 py-3">
+                  <span id="ladies-label">
+                    <span class="block font-semibold">Ladies only</span>
+                    <span class="block text-sm text-slate-500 dark:text-slate-400">Only women can see and book this ride.</span>
+                  </span>
+                  <button type="button" role="switch" class="switch" [attr.aria-checked]="ladiesOnly()" aria-labelledby="ladies-label" (click)="ladiesOnly.set(!ladiesOnly())"><span class="switch-knob"></span></button>
+                </li>
+              }
+            </ul>
+            <label for="notes" class="label mt-4">Anything passengers should know? <span class="font-normal text-slate-500">(optional)</span></label>
+            <textarea id="notes" class="input min-h-24" maxlength="500" [value]="notes()" (input)="notes.set($any($event.target).value)"
+                      placeholder="e.g. Small bags only. I'll stop once for chai near Neemrana."></textarea>
+            <p class="hint">Please don't share your phone number here. Passengers see it once you confirm their seat.</p>
+          }
+        }
+
+        @if (error()) {
+          <p class="mt-5 flex items-start gap-2 rounded-2xl bg-rose-50 p-3 text-sm font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-300" role="alert">
+            <app-icon name="info" [size]="18" /> {{ error() }}
+          </p>
+        }
+
+        <!-- Step buttons (phones: fixed at the bottom) -->
+        <div class="fixed inset-x-0 bottom-0 z-30 flex gap-2 border-t border-slate-200 bg-white/90 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl
+                    lg:static lg:mt-8 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none dark:border-slate-800 dark:bg-slate-950/90 lg:dark:bg-transparent">
+          @if (stepIndex() > 0) {
+            <button type="button" class="btn btn-secondary" (click)="prev()"><app-icon name="arrowLeft" [size]="18" /> <span class="max-sm:sr-only">Back</span></button>
+          }
+          @if (step() === 'review') {
+            <button type="button" class="btn btn-primary flex-1 py-3.5 text-base" (click)="publish()" [disabled]="publishing()">
+              @if (publishing()) { Publishing… } @else { <app-icon name="check" [size]="18" /> Publish ride }
+            </button>
+          } @else {
+            <button type="button" class="btn btn-primary flex-1 py-3.5 text-base" (click)="next()" [disabled]="step() === 'car' && addingCar()">
+              Continue <app-icon name="arrowRight" [size]="18" />
+            </button>
+          }
+        </div>
+      </section>
+
+      <!-- Summary -->
+      <aside class="max-lg:hidden" aria-label="Summary">
+        <div class="card sticky top-24 p-5">
+          <p class="kicker mb-3">Your ride</p>
+          @if (from() || to()) {
+            <ol class="text-sm">
+              @for (p of (allPlaces().length ? allPlaces() : [from() ?? to()!]); track p.id; let lastStop = $last) {
+                <li class="relative flex gap-3" [class.pb-3]="!lastStop">
+                  <span class="route-dot"></span>
+                  @if (!lastStop) { <span class="route-line"></span> }
+                  <span class="font-semibold">{{ p.name }}</span>
+                </li>
+              }
+            </ol>
+          } @else {
+            <p class="text-sm text-slate-500 dark:text-slate-400">Start by choosing where you're going.</p>
+          }
+          @if (quote(); as q) {
+            <p class="mt-3 text-sm text-slate-600 dark:text-slate-400">About {{ q.distanceKm }} km · {{ fmtDuration(q.durationMin) }}</p>
+          }
+          @if (stepIndex() >= 1 && departure(); as dep) {
+            <p class="mt-3 flex items-center gap-2 text-sm"><app-icon name="calendar" [size]="16" class="text-slate-400" /> {{ dep | date: 'EEE, d MMM, h:mm a' }}</p>
+          }
+          @if (stepIndex() >= 2 && car(); as c) {
+            <p class="mt-2 flex items-center gap-2 text-sm"><app-icon name="car" [size]="16" class="text-slate-400" /> {{ c.make }} {{ c.model }} · {{ seats() }} {{ seats() === 1 ? 'seat' : 'seats' }}</p>
+          }
+          @if (stepIndex() >= 3 && price() != null) {
+            <p class="mt-2 flex items-center gap-2 text-sm"><app-icon name="rupee" [size]="16" class="text-slate-400" /> {{ fmtRupees(price()!) }} per seat</p>
+          }
+        </div>
+      </aside>
+    </div>
+  }
+</div>

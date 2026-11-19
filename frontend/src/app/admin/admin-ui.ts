@@ -29,6 +29,9 @@ export function auditStyle(action: string): { icon: IconName; tint: string } {
   if (action.startsWith('member.')) {
     return { icon: 'user', tint: 'bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300' };
   }
+  if (action.startsWith('ride.')) {
+    return { icon: 'car', tint: 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300' };
+  }
   if (action.includes('2fa') || action.includes('recovery') || action.includes('console')) {
     return { icon: 'key', tint: 'bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300' };
   }

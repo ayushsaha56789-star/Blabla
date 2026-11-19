@@ -73,6 +73,34 @@
       }
     </section>
 
+    <section class="card animate-fade-up p-6 sm:col-span-2 lg:col-span-4 [animation-delay:165ms]" aria-labelledby="rides-heading">
+      <div class="flex items-center justify-between gap-3">
+        <h2 id="rides-heading" class="text-lg font-bold">Rides</h2>
+        <a routerLink="/admin/rides" class="text-sm font-semibold text-brand-700 hover:underline dark:text-brand-400">All rides</a>
+      </div>
+      <dl class="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div class="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/60">
+          <dt class="text-sm text-slate-500 dark:text-slate-400">Upcoming rides</dt>
+          <dd class="mt-1 text-3xl font-extrabold tracking-tight tabular-nums">{{ d.rides.upcoming | number }}</dd>
+        </div>
+        <div class="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/60">
+          <dt class="text-sm text-slate-500 dark:text-slate-400">Offered in the last 7 days</dt>
+          <dd class="mt-1 text-3xl font-extrabold tracking-tight tabular-nums">{{ d.rides.publishedLast7Days | number }}</dd>
+        </div>
+        <div class="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/60">
+          <dt class="text-sm text-slate-500 dark:text-slate-400">Bookings in the last 7 days</dt>
+          <dd class="mt-1 text-3xl font-extrabold tracking-tight tabular-nums">{{ d.rides.bookingsLast7Days | number }}</dd>
+        </div>
+        <div class="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/60">
+          <dt class="text-sm text-slate-500 dark:text-slate-400">Seats booked on upcoming rides</dt>
+          <dd class="mt-1 text-3xl font-extrabold tracking-tight tabular-nums">{{ d.rides.seatsBookedUpcoming | number }}</dd>
+        </div>
+      </dl>
+      @if (d.rides.cancelledLast7Days) {
+        <p class="mt-3 text-sm text-slate-500 dark:text-slate-400">{{ d.rides.cancelledLast7Days }} {{ d.rides.cancelledLast7Days === 1 ? 'ride was' : 'rides were' }} cancelled in the last 7 days.</p>
+      }
+    </section>
+
     @if (session.can('audit.view')) {
       <section class="card animate-fade-up p-6 sm:col-span-2 lg:col-span-4 [animation-delay:180ms]">
         <div class="flex items-center justify-between gap-3">

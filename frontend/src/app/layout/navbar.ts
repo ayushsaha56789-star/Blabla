@@ -6,6 +6,7 @@ import { AuthService } from '../core/auth.service';
 import { FEATURE_PAGES } from '../core/feature-pages';
 import { FeaturesService } from '../core/features.service';
 import { ThemeService } from '../core/theme.service';
+import { TripsService } from '../core/trips.service';
 import { Avatar } from '../shared/avatar';
 import { Icon } from '../shared/icon';
 import { Logo } from '../shared/logo';
@@ -29,6 +30,7 @@ export class Navbar {
   protected readonly auth = inject(AuthService);
   protected readonly theme = inject(ThemeService);
   protected readonly features = inject(FeaturesService);
+  protected readonly trips = inject(TripsService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   protected readonly mobileOpen = signal(false);

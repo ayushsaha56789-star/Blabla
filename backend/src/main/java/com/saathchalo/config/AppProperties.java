@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import java.time.Duration;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -21,7 +22,8 @@ public record AppProperties(
 		Cors cors,
 		@Valid @NotNull Security security,
 		Bootstrap bootstrap,
-		@Valid @NotNull Staff staff) {
+		@Valid @NotNull Staff staff,
+		@Valid @NotNull Rides rides) {
 
 	public record Jwt(@NotBlank String secret, @NotBlank String issuer,
 			@NotNull Duration accessTokenTtl, @NotNull Duration refreshTokenTtl) {
@@ -50,6 +52,15 @@ public record AppProperties(
 
 	/** Staff console sessions end after {@code sessionIdleTimeout} without activity, and always after {@code sessionMaxAge}. */
 	public record Staff(@NotNull Duration sessionIdleTimeout, @NotNull Duration sessionMaxAge, @NotBlank String totpIssuer) {
+	}
+
+	/**
+	 * Carpooling rules. Prices are rupees per seat for a whole route; {@code maxPricePerKm} keeps rides cost-sharing
+	 * rather than commercial. Searches match stops within {@code searchRadiusKm} of the places searched for. Booking
+	 * requests the driver hasn't answered expire after {@code requestTtl}.
+	 */
+	public record Rides(@Positive double suggestedPricePerKm, @Positive double maxPricePerKm, @Min(1) int minPrice,
+			@Min(1) int searchRadiusKm, @Min(1) int maxDaysAhead, @NotNull Duration requestTtl) {
 	}
 
 	public record Cors(List<String> allowedOrigins) {

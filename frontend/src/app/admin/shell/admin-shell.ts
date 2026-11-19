@@ -23,6 +23,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { path: '/admin', label: 'Dashboard', icon: 'grid', permission: 'users.view', exact: true },
   { path: '/admin/members', label: 'Members', icon: 'users', permission: 'users.view' },
+  { path: '/admin/rides', label: 'Rides', icon: 'car', permission: 'users.view' },
   { path: '/admin/features', label: 'Feature switches', icon: 'toggles', permission: 'features.manage' },
   { path: '/admin/staff', label: 'Staff', icon: 'shield', permission: 'staff.manage' },
   { path: '/admin/audit', label: 'Audit log', icon: 'history', permission: 'audit.view' },

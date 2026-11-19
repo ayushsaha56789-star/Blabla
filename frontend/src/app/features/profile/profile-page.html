@@ -157,5 +157,9 @@
         </div>
       }
     </form>
+
+    @if (features.isOn('rides.publish')) {
+      <app-my-cars class="mt-6 max-lg:mb-20" />
+    }
   </div>
 }

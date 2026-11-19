@@ -17,4 +17,6 @@ public final class Perm {
 	public static final String USERS_RESTRICT = "hasAuthority('PERM_users.restrict')";
 
 	public static final String AUDIT_VIEW = "hasAuthority('PERM_audit.view')";
+
+	public static final String CONTENT_MODERATE = "hasAuthority('PERM_content.moderate')";
 }

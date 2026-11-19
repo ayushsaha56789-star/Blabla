@@ -2,6 +2,7 @@ package com.saathchalo.admin;
 
 import com.saathchalo.audit.AuditEntryView;
 import com.saathchalo.features.Audience;
+import com.saathchalo.rides.RideDtos.RideStats;
 import com.saathchalo.user.Gender;
 import com.saathchalo.user.MemberDirectory.AreaOption;
 import com.saathchalo.user.MemberDirectory.MemberDetails;
@@ -28,8 +29,13 @@ public final class AdminDtos {
 	public record RoleResponse(String code, String name, String description, List<PermissionInfo> permissions) {
 	}
 
-	public record Dashboard(MemberStats members, long staffCount, long featuresOn, long featuresTotal,
+	public record Dashboard(MemberStats members, RideStats rides, long staffCount, long featuresOn, long featuresTotal,
 			boolean maintenance, boolean signupsOpen, List<AuditEntryView> recentActivity) {
+	}
+
+	public record CancelRideRequest(
+			@NotBlank(message = "Please give a reason. The driver and passengers will see it.")
+			@Size(min = 3, max = 300, message = "Use 3 to 300 characters") String reason) {
 	}
 
 	public record MemberRow(UUID id, String displayName, String maskedPhone, String avatarUrl, Gender gender,

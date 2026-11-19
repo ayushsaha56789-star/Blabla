@@ -2,11 +2,13 @@ package com.saathchalo.common;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -46,6 +48,26 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 				"Please check the highlighted fields.");
 		problem.setProperty("code", "validation_failed");
 		problem.setProperty("errors", errors);
+		return ResponseEntity.badRequest().body(problem);
+	}
+
+	/** E.g. "/api/rides/not-an-id" or "?date=tomorrow". */
+	@Override
+	protected ResponseEntity<Object> handleTypeMismatch(TypeMismatchException ex, HttpHeaders headers,
+			HttpStatusCode status, WebRequest request) {
+		ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+				"Part of that link or request isn't valid. Please go back and try again.");
+		problem.setProperty("code", "bad_request");
+		return ResponseEntity.badRequest().body(problem);
+	}
+
+	/** A body that isn't valid JSON, or a value of the wrong kind (e.g. a date like "2026-13-45"). */
+	@Override
+	protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex,
+			HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+		ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+				"Some details in the request aren't valid. Please check them and try again.");
+		problem.setProperty("code", "bad_request");
 		return ResponseEntity.badRequest().body(problem);
 	}
 

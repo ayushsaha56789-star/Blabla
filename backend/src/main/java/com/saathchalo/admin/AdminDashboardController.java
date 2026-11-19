@@ -8,6 +8,7 @@ import com.saathchalo.audit.AuditFilter;
 import com.saathchalo.audit.AuditService;
 import com.saathchalo.features.FeatureCatalog;
 import com.saathchalo.features.FeatureService;
+import com.saathchalo.rides.RideAdmin;
 import com.saathchalo.user.MemberDirectory;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,13 +30,16 @@ public class AdminDashboardController {
 
 	private final AuditService audit;
 
+	private final RideAdmin rides;
+
 	public AdminDashboardController(AdminContext context, MemberDirectory members, AccessService access,
-			FeatureService features, AuditService audit) {
+			FeatureService features, AuditService audit, RideAdmin rides) {
 		this.context = context;
 		this.members = members;
 		this.access = access;
 		this.features = features;
 		this.audit = audit;
+		this.rides = rides;
 	}
 
 	@GetMapping
@@ -43,7 +47,8 @@ public class AdminDashboardController {
 	public Dashboard dashboard() {
 		boolean canSeeAudit = context.current().can(Permission.AUDIT_VIEW.code());
 		long total = FeatureCatalog.all().stream().filter(d -> !d.global()).count();
-		return new Dashboard(members.stats(14), access.countStaff(), features.countOn(), total, features.isMaintenance(),
+		return new Dashboard(members.stats(14), rides.stats(), access.countStaff(), features.countOn(), total,
+				features.isMaintenance(),
 				features.signupsOpen(),
 				canSeeAudit ? audit.search(new AuditFilter(null, null, null, null, null), 0, 8).items() : List.of());
 	}

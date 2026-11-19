@@ -1,14 +1,15 @@
-import { ChangeDetectionStrategy, Component, inject, input, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, signal, untracked } from '@angular/core';
 import { Router } from '@angular/router';
-import { POPULAR_CITIES } from '../core/cities';
+import { Place } from '../core/rides.models';
 import { todayIso } from '../core/util';
 import { Icon } from './icon';
+import { PlaceInput } from './place-input';
 
 /** "From → To · Date · Seats" search bar used on the home page and the search page. */
 @Component({
   selector: 'app-ride-search-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon],
+  imports: [Icon, PlaceInput],
   host: { class: 'block' },
   template: `
     <form (submit)="search($event)" novalidate class="card p-2 shadow-xl shadow-slate-900/5 sm:p-2.5" aria-label="Search rides">
@@ -18,8 +19,8 @@ import { Icon } from './icon';
             <app-icon name="pin" class="text-brand-600 dark:text-brand-400" />
             <span class="min-w-0 flex-1">
               <span class="field-caption">Leaving from</span>
-              <input #fromEl class="field-input" placeholder="City or place" list="sc-cities" autocomplete="off" required
-                     [value]="from()" (input)="from.set(fromEl.value)" />
+              <app-place-input [(value)]="from" inputClass="field-input" placeholder="City or town" ariaLabel="Leaving from"
+                               [allowLocation]="true" [exclude]="to() ? [to()!.id] : []" (picked)="error.set(null)" />
             </span>
           </label>
           <button type="button" (click)="swap()" aria-label="Swap from and to"
@@ -31,8 +32,8 @@ import { Icon } from './icon';
             <app-icon name="pin" class="text-accent-500" />
             <span class="min-w-0 flex-1">
               <span class="field-caption">Going to</span>
-              <input #toEl class="field-input" placeholder="City or place" list="sc-cities" autocomplete="off" required
-                     [value]="to()" (input)="to.set(toEl.value)" />
+              <app-place-input [(value)]="to" inputClass="field-input" placeholder="City or town" ariaLabel="Going to"
+                               [exclude]="from() ? [from()!.id] : []" (picked)="error.set(null)" />
             </span>
           </label>
         </div>
@@ -67,11 +68,6 @@ import { Icon } from './icon';
       @if (error()) {
         <p class="field-error px-3 pb-1" role="alert">{{ error() }}</p>
       }
-      <datalist id="sc-cities">
-        @for (city of cities; track city) {
-          <option [value]="city"></option>
-        }
-      </datalist>
     </form>
   `,
   styles: `
@@ -81,39 +77,41 @@ import { Icon } from './icon';
         hover:bg-slate-50 focus-within:bg-slate-50 dark:hover:bg-slate-800/60 dark:focus-within:bg-slate-800/60;
     }
     .field-caption { @apply block text-xs font-semibold text-slate-500 dark:text-slate-400; }
-    .field-input {
-      @apply w-full min-w-0 bg-transparent text-base font-semibold text-slate-900 outline-none placeholder:font-medium
-        placeholder:text-slate-400 dark:text-slate-100;
-    }
     .stepper {
       @apply rounded-full border border-slate-200 p-1.5 text-slate-600 transition hover:border-brand-500 hover:text-brand-600
         disabled:opacity-40 dark:border-slate-700 dark:text-slate-300;
     }
   `,
 })
-export class RideSearchForm implements OnInit {
+export class RideSearchForm {
   private readonly router = inject(Router);
 
-  readonly initialFrom = input<string | undefined>(undefined, { alias: 'from' });
-  readonly initialTo = input<string | undefined>(undefined, { alias: 'to' });
+  readonly initialFrom = input<Place | null>(null, { alias: 'from' });
+  readonly initialTo = input<Place | null>(null, { alias: 'to' });
   readonly initialDate = input<string | undefined>(undefined, { alias: 'date' });
   readonly initialSeats = input<number | undefined>(undefined, { alias: 'seats' });
 
-  protected readonly cities = POPULAR_CITIES;
   protected readonly minDate = todayIso();
-  protected readonly from = signal('');
-  protected readonly to = signal('');
+  protected readonly from = signal<Place | null>(null);
+  protected readonly to = signal<Place | null>(null);
   protected readonly date = signal(todayIso());
   protected readonly seats = signal(1);
   protected readonly error = signal<string | null>(null);
 
-  ngOnInit(): void {
-    this.from.set(this.initialFrom() ?? '');
-    this.to.set(this.initialTo() ?? '');
-    const d = this.initialDate();
-    if (d && d >= this.minDate) this.date.set(d);
-    const s = this.initialSeats();
-    if (s && s >= 1 && s <= 6) this.seats.set(s);
+  constructor() {
+    // Follow the page's search (e.g. after the results load, or when going back to an older search).
+    effect(() => {
+      const from = this.initialFrom();
+      const to = this.initialTo();
+      const d = this.initialDate();
+      const s = this.initialSeats();
+      untracked(() => {
+        if (from) this.from.set(from);
+        if (to) this.to.set(to);
+        if (d && d >= this.minDate) this.date.set(d);
+        if (s && s >= 1 && s <= 6) this.seats.set(s);
+      });
+    });
   }
 
   protected swap(): void {
@@ -124,17 +122,19 @@ export class RideSearchForm implements OnInit {
 
   protected search(event: Event): void {
     event.preventDefault();
-    const from = this.from().trim();
-    const to = this.to().trim();
+    const from = this.from();
+    const to = this.to();
     if (!from || !to) {
-      this.error.set('Tell us where you are leaving from and where you are going.');
+      this.error.set(!from ? 'Choose where you are leaving from (pick a town from the list).' : 'Choose where you are going (pick a town from the list).');
       return;
     }
-    if (from.toLowerCase() === to.toLowerCase()) {
+    if (from.id === to.id) {
       this.error.set('Your start and destination are the same. Pick a different destination.');
       return;
     }
     this.error.set(null);
-    void this.router.navigate(['/search'], { queryParams: { from, to, date: this.date(), seats: this.seats() } });
+    void this.router.navigate(['/search'], {
+      queryParams: { from: from.name, fromId: from.id, to: to.name, toId: to.id, date: this.date(), seats: this.seats() },
+    });
   }
 }

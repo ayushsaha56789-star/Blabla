@@ -3,7 +3,7 @@
     <app-logo [size]="34" />
   </a>
 
-  <div class="hidden items-center gap-1 md:flex">
+  <div class="hidden items-center gap-1 whitespace-nowrap lg:flex">
     @if (features.isOn('rides.booking')) {
       <a routerLink="/search" routerLinkActive="!text-brand-700 dark:!text-brand-300 bg-brand-50 dark:bg-brand-500/10" class="btn btn-ghost btn-sm">
         <app-icon name="search" [size]="18" /> Find a ride
@@ -12,6 +12,14 @@
     @if (features.isOn('rides.publish')) {
       <a routerLink="/publish" routerLinkActive="!text-brand-700 dark:!text-brand-300 bg-brand-50 dark:bg-brand-500/10" class="btn btn-ghost btn-sm">
         <app-icon name="plusCircle" [size]="18" /> Offer a ride
+      </a>
+    }
+    @if (auth.isLoggedIn() && features.isOn('rides')) {
+      <a routerLink="/my-rides" routerLinkActive="!text-brand-700 dark:!text-brand-300 bg-brand-50 dark:bg-brand-500/10" class="btn btn-ghost btn-sm">
+        <app-icon name="route" [size]="18" /> My rides
+        @if (trips.pendingRequests()) {
+          <span class="rounded-full bg-accent-500 px-1.5 text-[0.7rem] leading-5 font-bold text-white" [attr.aria-label]="trips.pendingRequests() + ' requests waiting'">{{ trips.pendingRequests() }}</span>
+        }
       </a>
     }
     @if (gamesOn()) {
@@ -52,7 +60,7 @@
     </div>
 
     @if (auth.user(); as user) {
-      <div class="relative hidden md:block">
+      <div class="relative hidden lg:block">
         <button type="button" class="flex items-center gap-2 rounded-full p-1 pr-3 transition hover:bg-slate-100 focus-visible:ring-4 focus-visible:ring-brand-500/30 focus-visible:outline-none dark:hover:bg-slate-800"
                 (click)="toggle('account')" [attr.aria-expanded]="openMenu() === 'account'" aria-haspopup="menu">
           <app-avatar [url]="user.avatarUrl" [name]="user.displayName" [size]="34" />
@@ -81,18 +89,19 @@
         }
       </div>
     } @else {
-      <a routerLink="/login" class="btn btn-primary btn-sm hidden md:inline-flex">Log in</a>
+      <a routerLink="/login" class="btn btn-primary btn-sm hidden lg:inline-flex">Log in</a>
     }
 
-    <button type="button" class="btn btn-ghost btn-icon md:hidden" (click)="mobileOpen.set(!mobileOpen())"
+    <button type="button" class="btn btn-ghost btn-icon relative lg:hidden" (click)="mobileOpen.set(!mobileOpen())"
             [attr.aria-expanded]="mobileOpen()" aria-controls="mobile-menu" [attr.aria-label]="mobileOpen() ? 'Close menu' : 'Open menu'">
       <app-icon [name]="mobileOpen() ? 'close' : 'menu'" />
+      @if (trips.pendingRequests() && !mobileOpen()) { <span class="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-accent-500 ring-2 ring-white dark:ring-slate-950" aria-hidden="true"></span> }
     </button>
   </div>
 </nav>
 
 @if (mobileOpen()) {
-  <div id="mobile-menu" class="container-page animate-fade-up space-y-1 border-t border-slate-200/70 pt-3 pb-5 md:hidden dark:border-slate-800/70">
+  <div id="mobile-menu" class="container-page animate-fade-up space-y-1 border-t border-slate-200/70 pt-3 pb-5 lg:hidden dark:border-slate-800/70">
     @if (auth.user(); as user) {
       <a routerLink="/profile" class="mb-2 flex items-center gap-3 rounded-2xl bg-slate-100 p-3 dark:bg-slate-900">
         <app-avatar [url]="user.avatarUrl" [name]="user.displayName" [size]="44" />
@@ -108,6 +117,12 @@
     }
     @if (features.isOn('rides.publish')) {
       <a routerLink="/publish" class="btn btn-ghost w-full justify-start text-base"><app-icon name="plusCircle" /> Offer a ride</a>
+    }
+    @if (auth.isLoggedIn() && features.isOn('rides')) {
+      <a routerLink="/my-rides" class="btn btn-ghost w-full justify-start text-base">
+        <app-icon name="route" /> My rides
+        @if (trips.pendingRequests()) { <span class="ml-auto rounded-full bg-accent-500 px-2 text-xs leading-6 font-bold text-white">{{ trips.pendingRequests() }} waiting</span> }
+      </a>
     }
     @for (p of extras(); track p.key) {
       <a [routerLink]="p.path" class="btn btn-ghost w-full justify-start text-base"><app-icon [name]="p.icon" /> {{ p.label }}</a>

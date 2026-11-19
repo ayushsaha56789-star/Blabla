@@ -45,6 +45,18 @@ export const routes: Routes = [
     loadComponent: () => import('./features/rides/publish-page').then((m) => m.PublishPage),
   },
   {
+    path: 'rides/:id',
+    title: 'Ride · SaathChalo',
+    canActivate: [featureGuard('rides')],
+    loadComponent: () => import('./features/rides/ride-page').then((m) => m.RidePage),
+  },
+  {
+    path: 'my-rides',
+    title: 'My rides · SaathChalo',
+    canActivate: [authGuard, featureGuard('rides')],
+    loadComponent: () => import('./features/rides/my-rides-page').then((m) => m.MyRidesPage),
+  },
+  {
     path: 'admin',
     title: 'Staff console · SaathChalo',
     canActivate: [authGuard],

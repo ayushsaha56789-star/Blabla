@@ -3,6 +3,8 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
   AdminMe,
+  AdminRideDetails,
+  AdminRideRow,
   Audience,
   AuditEntry,
   ChainCheck,
@@ -106,5 +108,15 @@ export class AdminApi {
   }
   verifyAudit() {
     return firstValueFrom(this.http.get<ChainCheck>('/api/admin/audit/verify'));
+  }
+  rides(show: string, q: string, page: number, size = 25) {
+    const params = new HttpParams().set('show', show).set('q', q).set('page', page).set('size', size);
+    return firstValueFrom(this.http.get<PageResult<AdminRideRow>>('/api/admin/rides', { params }));
+  }
+  ride(id: string) {
+    return firstValueFrom(this.http.get<AdminRideDetails>(`/api/admin/rides/${encodeURIComponent(id)}`));
+  }
+  cancelRide(id: string, reason: string) {
+    return firstValueFrom(this.http.post<AdminRideDetails>(`/api/admin/rides/${encodeURIComponent(id)}/cancel`, { reason }));
   }
 }

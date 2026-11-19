@@ -27,6 +27,18 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/member-detail').then((m) => m.MemberDetailPage),
       },
       {
+        path: 'rides',
+        title: 'Rides · Staff console',
+        canActivate: [permissionGuard('users.view')],
+        loadComponent: () => import('./pages/rides').then((m) => m.RidesPage),
+      },
+      {
+        path: 'rides/:id',
+        title: 'Ride · Staff console',
+        canActivate: [permissionGuard('users.view')],
+        loadComponent: () => import('./pages/ride-detail').then((m) => m.RideDetailPage),
+      },
+      {
         path: 'features',
         title: 'Feature switches · Staff console',
         canActivate: [permissionGuard('features.manage')],

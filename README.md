@@ -10,8 +10,9 @@ Built with **Java 25 + Spring Boot 4** (backend) and **Angular 22 + Tailwind CSS
 |---|---|---|
 | 1. Base | Phone-OTP login, profiles, home page, light/dark mode | ✅ Done |
 | 2. Control centre | Super admin, staff roles, two-step verification, feature switches, member restrictions, audit log | ✅ Done |
-| 3. Carpooling | Vehicles, place search, publish/search/book rides | Next |
-| 4–11 | Trust & privacy, payments, rentals, driver partners, games, Gen-Z features, promotions, launch | Planned — see the architecture doc |
+| 3. Carpooling | My cars, place search, offer/search/book rides, requests, My rides, price cap | ✅ Done |
+| 4. Trust & safety | Chat, reviews, verification, SOS, trip sharing, privacy centre, help | Next — needs the owner's "start" |
+| 5–11 | Payments, rentals, driver partners, games, Gen-Z features, promotions, launch | Planned — see the architecture doc |
 
 ## Run it locally
 
@@ -48,6 +49,15 @@ npm start
 
 **5. Log in** with any Indian mobile number. In dev mode no SMS is sent: the 6-digit code is shown on the login screen.
 
+## Carpooling (try it)
+
+1. **Offer a ride:** log in, finish your profile (first name and gender), then **Offer a ride**. Pick start and destination (old names like "Bangalore" or "Gurgaon" work), add suggested stops, choose the time, add your car once, accept or change the suggested price, and publish.
+2. **Find a ride:** use the search bar on the home page with a second account (another browser or a private window). Rides that stop near your start and destination show up, priced for your part of the trip.
+3. **Book:** with instant booking the seat is confirmed at once; otherwise the driver sees the request under **My rides** (with a badge) and accepts or declines it.
+4. Once a seat is confirmed, the driver and passenger see each other's phone number (Call / WhatsApp) and the passenger sees the car's number plate.
+
+Rules you can change in `backend/src/main/resources/application.properties` (`app.rides.*`): suggested and maximum price per km, minimum price, search radius, how far ahead rides can be offered, and how long requests wait for an answer.
+
 ## The staff console (`/admin`)
 
 1. Log in with the number from step 2. You become **super admin** automatically (only when no super admin exists yet).
@@ -59,6 +69,7 @@ What you can do there:
 
 - **Feature switches** — turn any part of SaathChalo on or off, for everyone or only for ID-verified members, women, beta testers or chosen cities. Unbuilt features show members a "coming soon" page. Maintenance mode closes the member site; staff can still use the console.
 - **Members** — search, see profiles (phone numbers masked unless you reveal them, which is recorded), suspend accounts or block single areas such as games, with a reason the member sees.
+- **Rides** — every ride, searchable by any town on the route, with its bookings and passengers' messages. Admins and moderators can cancel a ride (for example after a safety report) with a reason; everyone on it sees the reason.
 - **Staff** — add people (they must have logged in once) as Admin, Moderator or Support; change roles; reset two-step verification for a lost phone.
 - **Audit log** — every staff action, permanently recorded and hash-chained; "Verify integrity" proves nothing was changed.
 
@@ -86,15 +97,20 @@ backend/                Spring Boot API, one module per feature (checked by Spri
     features/           feature switches
     audit/              hash-chained audit log
     user/               profiles, member restrictions
+    geo/                Indian place search, distance and time estimates
+    vehicles/           members' cars (registration numbers encrypted)
+    rides/              offering, searching and booking rides; My rides
     admin/              staff console APIs
     files/ config/ common/
   src/main/resources/db/migration/   Flyway database migrations
+  src/main/resources/geo/            the place list (GeoNames, CC BY 4.0)
 frontend/               Angular web app
   src/app/admin/        the staff console
   src/app/core/         auth, API clients, feature switches, theme
   src/app/features/     member pages
   src/app/layout/ shared/
 scripts/setup-db.sql    one-time local database setup
+scripts/build_places.py rebuilds the place list from GeoNames (instructions inside)
 docs/ARCHITECTURE.md    architecture, roadmap and the owner's decisions
 ```
 
