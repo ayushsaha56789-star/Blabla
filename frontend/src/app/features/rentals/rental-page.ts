@@ -4,7 +4,8 @@ import { RouterLink } from '@angular/router';
 import { CheckoutService } from '../../core/checkout.service';
 import { problemOf } from '../../core/errors';
 import { paise, PaymentOptions, PaymentsApi, PaymentView, RefundPreview } from '../../core/payments-api';
-import { chargesLine, CheckForm, completedLine, FUEL_LABELS, RentalsApi, rentalStatus, RentalView } from '../../core/rentals-api';
+import { FeaturesService } from '../../core/features.service';
+import { chargesLine, CheckForm, completedLine, FUEL_LABELS, RentalsApi, rentalStatus, RentalView, toLocalInput } from '../../core/rentals-api';
 import { rupees, whatsappLink } from '../../core/rides-format';
 import { ToastService } from '../../core/toast.service';
 import { AuthImage } from '../../shared/auth-image';
@@ -42,6 +43,15 @@ import { CheckFormComponent } from './check-form';
             <div class="bg-white p-4 dark:bg-slate-900"><dt class="text-slate-500 dark:text-slate-400">Deposit</dt><dd class="font-semibold">{{ r.deposit ? money(r.deposit) + ' (refundable)' : 'None' }}</dd></div>
           </dl>
         </section>
+
+        @if (r.viewer === 'RENTER' && r.mode === 'SELF_DRIVE' && (r.status === 'ACCEPTED' || r.status === 'PAID') && features.isOn('drivers.hire')) {
+          <a routerLink="/drivers" [queryParams]="driverSearch()" class="card mt-4 flex items-center gap-3 p-4 transition hover:shadow-md">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300"><app-icon name="steering" [size]="20" /></span>
+            <span class="min-w-0 flex-1 text-sm"><span class="block font-semibold">Rather not drive?</span>
+              <span class="block text-slate-600 dark:text-slate-400">Hire a checked driver for this rental.</span></span>
+            <app-icon name="arrowRight" [size]="18" class="text-slate-400" />
+          </a>
+        }
 
         <!-- Who, and how to reach them -->
         <section class="card mt-4 p-5">
@@ -225,6 +235,16 @@ export class RentalPage {
   protected readonly cash = paise;
   protected readonly chargesLine = chargesLine;
   protected readonly completedLine = completedLine;
+  protected readonly features = inject(FeaturesService);
+
+  /** The driver search, filled in with this rental's town, start and length. */
+  protected driverSearch(): Record<string, string | number> {
+    const r = this.rental()!;
+    const hours = Math.round((Date.parse(r.to) - Date.parse(r.from)) / 3600_000);
+    return hours > 12
+      ? { placeId: r.listing.placeId, from: toLocalInput(new Date(r.from)), kind: 'OUTSTATION', days: Math.min(15, Math.ceil(hours / 24)) }
+      : { placeId: r.listing.placeId, from: toLocalInput(new Date(r.from)), kind: 'LOCAL', hours: Math.max(2, hours) };
+  }
   protected readonly wa = whatsappLink;
   protected readonly fuelLabels = FUEL_LABELS;
 

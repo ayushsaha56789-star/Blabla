@@ -110,6 +110,19 @@ public class IdCheckService {
 		return checks.existsByUserIdAndDocumentTypeAndStatus(memberId, DocumentType.DRIVING_LICENCE.name(), IdCheck.APPROVED);
 	}
 
+	/**
+	 * Where the member's driving-licence check stands: APPROVED (any approved check counts), else the latest one's
+	 * status (PENDING or REJECTED), or NONE.
+	 */
+	@Transactional(readOnly = true)
+	public String licenceStatus(UUID memberId) {
+		if (licenceVerified(memberId)) {
+			return IdCheck.APPROVED;
+		}
+		return checks.findFirstByUserIdAndDocumentTypeOrderBySubmittedAtDesc(memberId, DocumentType.DRIVING_LICENCE.name())
+			.map(IdCheck::getStatus).orElse("NONE");
+	}
+
 	// ----- Staff -----
 
 	/** {@code status}: PENDING (oldest first), APPROVED or REJECTED (newest first). */

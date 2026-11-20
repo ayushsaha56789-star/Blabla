@@ -98,7 +98,7 @@ Modules talk to each other only through each module's public service classes and
 | `moderation` | Reports and the moderation queue (blocking lives in `user`) | 4 ✓ |
 | `support` | Help requests and the grievance workflow | 4 ✓ |
 | `rentals` | Rental listings (self-drive or with driver), calendar, bookings, deposits, pickup/return checks, disputes | 6 ✓ |
-| `drivers` | Driver partners: licence check, service areas, availability, rates, hire-a-driver bookings | 7 |
+| `drivers` | Driver partners: licence check, service areas, availability, rates, hire-a-driver bookings | 7 ✓ |
 | `games` | Chess, ludo, rooms, matchmaking, ratings, leaderboards | 8 |
 | `rewards` | XP, levels, badges, streaks, challenges, referrals | 9 |
 | `community` | Squads (college, office and friend groups), event rides | 9 |
@@ -133,6 +133,7 @@ The code checks **permissions**, not role names. Phase 2 ships these four staff 
 | Review ID and licence checks (`verification.review`) | ✓ | ✓ | ✓ | |
 | Moderate chats, reviews and promotions (`content.moderate`) | ✓ | ✓ | ✓ | |
 | Approve rental listings, settle disputes (`rentals.manage`) | ✓ | ✓ | | |
+| Approve driver partners, look after their trips (`drivers.manage`) | ✓ | ✓ | | |
 | Refund payments (`payments.refund`) | ✓ | ✓ | | |
 | Read the audit log (`audit.view`) | ✓ | ✓ | | |
 | Answer help tickets (`support.tickets`) | ✓ | ✓ | ✓ | ✓ |
@@ -177,7 +178,7 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
 | Core | `signups`, `rides.publish`, `rides.booking`, `rides.ladies_only`, `maintenance_mode` |
 | Payments | `payments.online`, `payments.cash`, `wallet.credits` |
 | Trust | `chat`, `reviews`, `safety.sos`, `safety.trip_share` |
-| Rentals and drivers | `rentals`, `rentals.self_drive`, `rentals.with_driver`, `rentals.instant_book`, `rentals.unverified`, `drivers.register`, `drivers.hire` |
+| Rentals and drivers | `rentals`, `rentals.self_drive`, `rentals.with_driver`, `rentals.instant_book`, `rentals.unverified`, `drivers`, `drivers.register`, `drivers.hire` |
 | Games | `games`, `games.chess`, `games.ludo`, `games.vs_computer`, `games.online`, `games.ride_lobby`, `games.leaderboards` |
 | Social | `rewards`, `rewards.referrals`, `community.squads`, `community.events`, `vibe_match` |
 | Promotions | `promotions`, `promotions.self_serve`, `promotions.in_search`, `promotions.in_games`, plus the setting "free promotions until" for the launch offer |
@@ -250,21 +251,21 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
      └─► instant booking skips the owner's answer
 ```
 
-### 7.5 Driver partners and hire-a-driver (Phase 7)
+### 7.5 Driver partners and hire-a-driver (Phase 7, built)
 
-- **Who can register:** anyone with a valid driving licence. They add a photo, the licence (the number is stored encrypted, together with its class, such as LMV or transport), years of experience, languages and, optionally, a police verification certificate.
-- **Service areas:** the driver picks the cities and areas they serve, either a point on the map with a radius or named localities. These are stored as PostGIS shapes, so the app can instantly find every driver who covers a pickup point.
-- **Availability and rates:** an online/offline switch and a calendar; rates per hour (local), per day, and per day for outstation trips with a daily allowance for food and stay; night charges.
-- **What members can book:**
-  - **A driver for their own car**: local by the hour, a full day, or outstation.
-  - **A car with driver**: the rental owner picks a driver partner, or the member chooses one while booking.
-- **Matching:** drivers who cover the pickup point, are free at that time and hold the right licence class, sorted by distance, rating and price. The member chooses one, or the app offers the trip to the best matches one after another.
-- **Trust:** licence checked by staff (or a KYC provider later), a "Verified" badge, ratings from both sides, SOS and trip sharing on every trip, and payment to the driver after the trip.
+- **Who can register:** members with a profile photo and a driving licence approved through the ID-check flow (section 7.2). They add the licence number (stored encrypted, shown to staff only on request and audited), its class (LMV or transport) and expiry, years of experience, languages, manual and/or automatic cars, outstation yes/no and, optionally, a police verification certificate (encrypted; a "Police verified" badge once staff check it). Staff with `drivers.manage` approve them; new licence details send a live driver back for checking, and a licence that runs out takes the driver off until it's updated.
+- **Service areas:** up to 5 towns, each with a radius (2–60 km), stored as PostGIS points; a pickup is covered when it lies within an area's radius.
+- **Availability and rates:** a "taking bookings" switch and time off; prices per hour (local), for a full day of up to 12 hours (a cap on the hourly price), per day for outstation trips plus a daily allowance for food and stay, and a night charge for local trips that run between 10 pm and 6 am.
+- **What members can book:** a driver for their own car, in town for 2–12 hours or outstation for 1–15 days. A self-drive rental links to the search with its dates filled in. (Rental owners picking a driver partner for "with driver" listings is left for later.)
+- **Matching:** drivers who cover the pickup point, drive that kind of car, take outstation trips if needed, hold a licence valid for the whole trip and are free (with an hour either side for getting there and back), sorted by rating, trips done and distance (or by price or distance). Women can ask for women drivers only. The member requests one driver; if the driver doesn't answer within 3 hours, the request lapses and the member picks another (offering it to the next driver automatically is left for later).
+- **The trip:** phone numbers are shared once the driver accepts, until a day after the trip; the driver sees the pickup address only then. The driver taps "On my way" (from 3 hours before) and starts the trip with a 4-digit code the member gives them in person (from an hour before; wrong tries are counted, after 5 the member starts it). Time over the booking is worked out (hours with 15 minutes' grace, or days with 2 hours') and paid to the driver directly. SOS works on every trip; both sides rate each other for two weeks after.
+- **Money:** a third payment kind (`DRIVER`) through `payments.PayableKind`, like rides and rentals: paid online after the driver accepts (within 2 hours) or directly to the driver. The fare reaches the driver's earnings when the trip ends. Cancelling gives everything back before the driver accepted, at least 24 hours ahead, when the driver hadn't set off by the start time, or when the driver (with a reason) or staff cancel; later, part goes to the driver by the same settings as rides. The database's exclusion constraint stops a driver being booked twice for the same time.
+- **Housekeeping:** unanswered requests and unpaid trips lapse, trips that never started are cancelled with everything back once their time is over, and trips nobody ended finish 12 hours after their booked end.
 
 ```
- REQUESTED ─► ACCEPTED ─► ON THE WAY ─► TRIP STARTED ─► COMPLETED ─► payout and reviews
-     ├─► no answer in time ─► offered to the next matching driver
-     └─► CANCELLED (fees by policy, before the trip starts)
+ REQUESTED ─► ACCEPTED ─► (PAID) ─► ON THE WAY ─► STARTED (start code) ─► COMPLETED ─► earnings and ratings
+     ├─► DECLINED / EXPIRED (no answer in 3 hours)
+     └─► CANCELLED before the start (refund by the rules; everything back if the driver cancels)
 ```
 
 ### 7.6 Games (Phase 8)
@@ -368,6 +369,7 @@ The table is the reference for that later work.
 | ID images | 30 days after the decision (at once if a full Aadhaar number shows) | Deleted; the decision is kept |
 | Car documents (RC, insurance, permit) | While the listing exists | Deleted when the listing is removed or the account erased |
 | Pickup and return photos | 90 days after the rental ends | Deleted; the readings (odometer, fuel) are kept |
+| Driver partner profiles, licence numbers, police certificates | While the member drives with SaathChalo | Deleted when the account is erased; trips stay for the other side's history, without addresses or messages |
 | Help requests | Until the account is erased | Deleted |
 | Security logs | At least 1 year | Deleted |
 | Payments, refunds, payouts and the ledger | As tax law requires (about 8 years); kept after an account is erased, pointing to the anonymised account | Archived |
@@ -426,7 +428,7 @@ frontend/src/app/
 | 4 ✓ | **Trust, safety and privacy**: chat, reviews, verification, SOS, trip sharing, reports, privacy centre, legal pages, help tickets | Done |
 | 5 ✓ | **Payments and wallet**: Razorpay, refunds, ledger, credits, payouts | Done |
 | 6 ✓ | **Car rentals**: self-drive and with driver | Done |
-| 7 | **Driver partners**: licensed drivers register with their service areas; members hire a driver for their own car or a rental | 3–4 |
+| 7 ✓ | **Driver partners**: licensed drivers register with their service areas; members hire a driver for their own car or a rental | Done |
 | 8 | **Games**: chess and ludo (computer, friends, quick match, ride lobby), leaderboards | 4–6 |
 | 9 | **Gen-Z layer**: XP, badges, streaks, referrals, CO₂ card, squads, events, vibe match | 3–5 |
 | 10 | **Promotions marketplace** (free for the first month after launch) | 3–4 |

@@ -43,10 +43,20 @@
   }
   @if ((d.rentalsToCheck || d.rentalDisputes) && session.can('rentals.manage')) {
     <a routerLink="/admin/rentals" class="card mt-4 flex items-center gap-4 rounded-3xl p-5 transition hover:shadow-md">
-      <app-icon name="steering" [size]="24" />
+      <app-icon name="car" [size]="24" />
       <span class="flex-1">
         <span class="block font-extrabold">@if (d.rentalsToCheck) { {{ d.rentalsToCheck }} rental {{ d.rentalsToCheck === 1 ? 'listing' : 'listings' }} to check }@if (d.rentalsToCheck && d.rentalDisputes) { · }@if (d.rentalDisputes) { {{ d.rentalDisputes }} {{ d.rentalDisputes === 1 ? 'dispute' : 'disputes' }} to settle }</span>
         <span class="block text-sm opacity-80">Check documents within a day; settle disputes fairly, using the photos.</span>
+      </span>
+      <app-icon name="arrowRight" [size]="20" />
+    </a>
+  }
+  @if (d.driversToCheck && session.can('drivers.manage')) {
+    <a routerLink="/admin/drivers" class="card mt-4 flex items-center gap-4 rounded-3xl p-5 transition hover:shadow-md">
+      <app-icon name="steering" [size]="24" />
+      <span class="flex-1">
+        <span class="block font-extrabold">{{ d.driversToCheck }} {{ d.driversToCheck === 1 ? 'driver' : 'drivers' }} to check</span>
+        <span class="block text-sm opacity-80">Approve once the driving licence check is approved and the details match.</span>
       </span>
       <app-icon name="arrowRight" [size]="20" />
     </a>

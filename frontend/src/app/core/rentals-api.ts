@@ -33,6 +33,7 @@ export interface ListingCard {
   id: string;
   car: CarSummary;
   photoUrl: string | null;
+  placeId: number;
   placeName: string;
   area: string;
   distanceKm: number | null;

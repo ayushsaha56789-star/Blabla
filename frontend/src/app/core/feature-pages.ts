@@ -49,6 +49,7 @@ export const FEATURE_PAGES: readonly FeaturePage[] = [
   {
     key: 'drivers',
     path: '/drivers',
+    built: true,
     label: 'Hire a driver',
     icon: 'steering',
     tagline: 'Licensed drivers for your own car, in your area.',

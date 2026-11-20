@@ -12,6 +12,7 @@ import com.saathchalo.moderation.ReportService;
 import com.saathchalo.rides.RideAdmin;
 import com.saathchalo.safety.SosService;
 import com.saathchalo.support.SupportService;
+import com.saathchalo.drivers.DriverProfileService;
 import com.saathchalo.rentals.ListingService;
 import com.saathchalo.rentals.RentalService;
 import com.saathchalo.verification.IdCheckService;
@@ -50,9 +51,12 @@ public class AdminDashboardController {
 
 	private final RentalService rentals;
 
+	private final DriverProfileService drivers;
+
 	public AdminDashboardController(AdminContext context, MemberDirectory members, AccessService access,
 			FeatureService features, AuditService audit, RideAdmin rides, SosService sos,
-			ReportService reports, SupportService support, IdCheckService idChecks, ListingService listings, RentalService rentals) {
+			ReportService reports, SupportService support, IdCheckService idChecks, ListingService listings, RentalService rentals,
+			DriverProfileService drivers) {
 		this.context = context;
 		this.members = members;
 		this.access = access;
@@ -65,6 +69,7 @@ public class AdminDashboardController {
 		this.idChecks = idChecks;
 		this.listings = listings;
 		this.rentals = rentals;
+		this.drivers = drivers;
 	}
 
 	@GetMapping
@@ -74,7 +79,7 @@ public class AdminDashboardController {
 		long total = FeatureCatalog.all().stream().filter(d -> !d.global()).count();
 		return new Dashboard(members.stats(14), rides.stats(), sos.openCount(), reports.openCount(), reports.overdueCount(),
 				support.waitingForStaff(), idChecks.pendingCount(), listings.waitingForReview(), rentals.disputesOpen(),
-				access.countStaff(), features.countOn(), total,
+				drivers.waiting(), access.countStaff(), features.countOn(), total,
 				features.isMaintenance(),
 				features.signupsOpen(),
 				canSeeAudit ? audit.search(new AuditFilter(null, null, null, null, null), 0, 8).items() : List.of());

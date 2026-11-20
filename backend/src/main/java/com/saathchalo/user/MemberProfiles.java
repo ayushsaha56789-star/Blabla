@@ -77,6 +77,15 @@ public class MemberProfiles {
 		return users.findById(id).map(u -> new Traveller(u.getId(), u.displayName(), u.getGender(), u.isProfileComplete()));
 	}
 
+	/** Several members at once (for filters such as "women drivers only"). */
+	@Transactional(readOnly = true)
+	public Map<UUID, Traveller> travellers(Collection<UUID> ids) {
+		Map<UUID, Traveller> out = new LinkedHashMap<>();
+		users.findAllById(ids.stream().distinct().toList())
+			.forEach(u -> out.put(u.getId(), new Traveller(u.getId(), u.displayName(), u.getGender(), u.isProfileComplete())));
+		return out;
+	}
+
 	/**
 	 * A member's phone number. Only for sharing between a driver and a passenger whose booking is confirmed — the
 	 * caller is responsible for that check.

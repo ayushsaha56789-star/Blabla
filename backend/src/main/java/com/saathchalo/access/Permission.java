@@ -16,6 +16,7 @@ public enum Permission {
 	VERIFICATION_REVIEW("verification.review", "Review ID and licence checks"),
 	CONTENT_MODERATE("content.moderate", "Moderate chats, reviews and promotions"),
 	RENTALS_MANAGE("rentals.manage", "Approve rental listings and settle disputes"),
+	DRIVERS_MANAGE("drivers.manage", "Check driver partners and look after their trips"),
 	PAYMENTS_REFUND("payments.refund", "Refund payments"),
 	AUDIT_VIEW("audit.view", "Read the audit log"),
 	SUPPORT_TICKETS("support.tickets", "Answer help tickets");

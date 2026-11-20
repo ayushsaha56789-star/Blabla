@@ -95,6 +95,11 @@
                 <app-icon name="car" [size]="18" /> My rentals
               </a>
             }
+            @if (features.isOn('drivers')) {
+              <a routerLink="/drivers/trips" class="btn btn-ghost btn-sm w-full justify-start" role="menuitem">
+                <app-icon name="steering" [size]="18" /> Driver trips
+              </a>
+            }
             @if (features.isOn('payments.online') || features.isOn('wallet')) {
               <a routerLink="/wallet" class="btn btn-ghost btn-sm w-full justify-start" role="menuitem">
                 <app-icon name="rupee" [size]="18" /> Wallet
@@ -165,6 +170,9 @@
     }
     @if (auth.isLoggedIn() && features.isOn('rentals')) {
       <a routerLink="/rentals/mine" class="btn btn-ghost w-full justify-start text-base"><app-icon name="car" /> My rentals</a>
+    }
+    @if (auth.isLoggedIn() && features.isOn('drivers')) {
+      <a routerLink="/drivers/trips" class="btn btn-ghost w-full justify-start text-base"><app-icon name="steering" /> Driver trips</a>
     }
     @if (auth.isLoggedIn() && (features.isOn('payments.online') || features.isOn('wallet'))) {
       <a routerLink="/wallet" class="btn btn-ghost w-full justify-start text-base"><app-icon name="rupee" /> Wallet</a>

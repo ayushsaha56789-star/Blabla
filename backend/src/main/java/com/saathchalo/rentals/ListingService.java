@@ -382,7 +382,7 @@ public class ListingService {
 			Integer price = from == null ? null : RentalRules.rent(l, RentalRules.hours(from, to));
 			Double km = distance == null ? null : distance.get(l.getId());
 			return new ListingCard(l.getId(), car(cars.get(l.getVehicleId())), CarPhotoStorage.url(firstPhoto.get(l.getId())),
-					l.getPlaceName(), l.getArea(), km == null ? null : Math.round(km * 10) / 10.0, l.isSelfDrive(), l.isWithDriver(),
+					l.getPlaceId(), l.getPlaceName(), l.getArea(), km == null ? null : Math.round(km * 10) / 10.0, l.isSelfDrive(), l.isWithDriver(),
 					l.getDayPrice(), l.getHourPrice(), l.getDeposit(), l.getKmPerDay(), l.isVerified(), l.isInstant(),
 					owners.getOrDefault(l.getOwnerId(), MemberProfiles.deleted()), price);
 		}).toList();

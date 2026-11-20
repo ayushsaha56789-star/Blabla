@@ -31,6 +31,7 @@ import {
 } from './admin.models';
 import { PayoutView, WalletView } from '../core/payments-api';
 import { AdminListingRow, RentalView } from '../core/rentals-api';
+import { AdminDriverRow, TripView } from '../core/drivers-api';
 
 /** Calls to the staff console API. Console tokens and 2FA confirmations are added by adminInterceptor. */
 @Injectable({ providedIn: 'root' })
@@ -164,6 +165,27 @@ export class AdminApi {
   }
   cancelRental(id: string) {
     return firstValueFrom(this.http.post<RentalView>(`/api/admin/rentals/bookings/${encodeURIComponent(id)}/cancel`, null));
+  }
+  drivers(status: 'IN_REVIEW' | 'ALL') {
+    return firstValueFrom(this.http.get<AdminDriverRow[]>('/api/admin/drivers', { params: new HttpParams().set('status', status) }));
+  }
+  driverLicenceNumber(id: string) {
+    return firstValueFrom(this.http.post<{ number: string | null }>(`/api/admin/drivers/${encodeURIComponent(id)}/licence-number`, null));
+  }
+  approveDriver(id: string, policeChecked: boolean) {
+    return firstValueFrom(this.http.post<AdminDriverRow>(`/api/admin/drivers/${encodeURIComponent(id)}/approve`, { policeChecked }));
+  }
+  rejectDriver(id: string, note: string) {
+    return firstValueFrom(this.http.post<AdminDriverRow>(`/api/admin/drivers/${encodeURIComponent(id)}/reject`, { note }));
+  }
+  driverPoliceChecked(id: string) {
+    return firstValueFrom(this.http.post<AdminDriverRow>(`/api/admin/drivers/${encodeURIComponent(id)}/police-checked`, null));
+  }
+  driverTrips() {
+    return firstValueFrom(this.http.get<TripView[]>('/api/admin/drivers/trips'));
+  }
+  cancelDriverTrip(id: string, reason: string | null) {
+    return firstValueFrom(this.http.post<TripView>(`/api/admin/drivers/trips/${encodeURIComponent(id)}/cancel`, { reason }));
   }
   paymentsSummary() {
     return firstValueFrom(this.http.get<PaymentsSummary>('/api/admin/payments/summary'));

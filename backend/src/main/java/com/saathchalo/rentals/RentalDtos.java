@@ -62,7 +62,7 @@ public final class RentalDtos {
 	}
 
 	/** One search result; {@code priceForPeriod} when dates were given. */
-	public record ListingCard(UUID id, CarSummary car, String photoUrl, String placeName, String area, Double distanceKm,
+	public record ListingCard(UUID id, CarSummary car, String photoUrl, long placeId, String placeName, String area, Double distanceKm,
 			boolean selfDrive, boolean withDriver, int dayPrice, Integer hourPrice, int deposit, int kmPerDay, boolean verified,
 			boolean instant, MemberCard owner, Integer priceForPeriod) {
 	}

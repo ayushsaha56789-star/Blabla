@@ -145,6 +145,36 @@ export const routes: Routes = [
     canActivate: [featureGuard('rentals')],
     loadComponent: () => import('./features/rentals/listing-page').then((m) => m.ListingPage),
   },
+  {
+    path: 'drivers',
+    title: 'Hire a driver · SaathChalo',
+    canActivate: [featureGuard('drivers')],
+    loadComponent: () => import('./features/drivers/drivers-page').then((m) => m.DriversPage),
+  },
+  {
+    path: 'drivers/join',
+    title: 'Drive with SaathChalo · SaathChalo',
+    canActivate: [authGuard, featureGuard('drivers'), profileCompleteGuard],
+    loadComponent: () => import('./features/drivers/join-page').then((m) => m.JoinPage),
+  },
+  {
+    path: 'drivers/trips',
+    title: 'Driver trips · SaathChalo',
+    canActivate: [authGuard, featureGuard('drivers')],
+    loadComponent: () => import('./features/drivers/trips-page').then((m) => m.TripsPage),
+  },
+  {
+    path: 'drivers/trips/:id',
+    title: 'Driver trip · SaathChalo',
+    canActivate: [authGuard, featureGuard('drivers')],
+    loadComponent: () => import('./features/drivers/trip-page').then((m) => m.TripPage),
+  },
+  {
+    path: 'drivers/:id',
+    title: 'Driver · SaathChalo',
+    canActivate: [featureGuard('drivers')],
+    loadComponent: () => import('./features/drivers/driver-page').then((m) => m.DriverPage),
+  },
   // "Coming soon" pages for areas the owner has switched on ahead of launch.
   ...FEATURE_PAGES.filter((p) => !p.built).map((p) => ({
     path: p.path.slice(1),

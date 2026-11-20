@@ -14,8 +14,9 @@ Built with **Java 25 + Spring Boot 4** (backend) and **Angular 22 + Tailwind CSS
 | 4. Trust & safety | Chat, reviews, SOS and trip sharing, reports and blocks, help centre, privacy centre, email and ID checks | ✅ Done |
 | 5. Payments | Pay online (Razorpay), refunds, SaathChalo credits, driver earnings and payouts, double-entry ledger | ✅ Done |
 | 6. Car rentals | List your car; rent one self-drive or with a driver; document checks, pickup and return records, deposits and disputes | ✅ Done |
-| 7. Driver partners | Licensed drivers with service areas; hire a driver | Next |
-| 8–11 | Games, Gen-Z features, promotions, launch | Planned — see the architecture doc |
+| 7. Driver partners | Licensed drivers sign up with their areas and prices; members hire one for their own car, with a start code, SOS and ratings | ✅ Done |
+| 8. Games | Chess and ludo, free | Next |
+| 9–11 | Gen-Z features, promotions, launch | Planned — see the architecture doc |
 
 ## Run it locally
 
@@ -95,6 +96,17 @@ Rentals are **off** until you switch them on (console → Feature switches → *
 - **Cancelling** (rentals paid online): the deposit always comes back. If the renter cancels less than 24 hours before pickup, half the rent goes to the owner (the same two `app.payments.*` settings as rides). When the owner or staff cancel, everything comes back.
 - Blocked dates: owners can mark when the car isn't available. Two bookings can never overlap; the database refuses it.
 
+## Driver partners (try it)
+
+Driver partners are **off** until you switch them on (console → Feature switches → **Driver partners**).
+
+- **Become a driver partner** (`/drivers/join`, or **Explore → Hire a driver → Become a driver partner**). You need a profile photo and a driving licence checked by staff (Profile → Verification → Driving licence). Add the licence number (stored encrypted), type and expiry, years of driving, languages, manual and/or automatic cars, outstation yes/no, and your prices: per hour, a full day (up to 12 hours), outstation per day plus food and stay, and a night charge. Add up to 5 areas (a town and how far around it), then **Send for checking**. A police verification certificate is optional and earns a "Police verified" badge.
+- **Staff approve** in the console (**Drivers → To check**) once the licence check is approved; the full licence number can be shown to compare with the photo (recorded in the audit log).
+- **Hire a driver** (`/drivers`): choose the pickup town, the time, in town (2–12 hours) or outstation (1–15 days), and manual or automatic. Only drivers who work there, drive that kind of car and are free (with an hour either side) show up, each with the full price. Women can choose women drivers only. Request one; the driver has up to 3 hours to answer.
+- **The trip:** once accepted, both see each other's phone number and the driver sees the pickup address. With online payments on, the member pays after the driver accepts and the money waits until the trip is over; otherwise they pay the driver directly. The driver taps **On my way**, and starts the trip with the **4-digit code** the member gives them in person (or the member starts it). There's an SOS button during the trip. Time over the booking is shown at the driver's hourly (or daily) price, paid directly. Both rate each other afterwards.
+- **Cancelling** (trips paid online): everything back before the driver accepts, at least 24 hours ahead, if the driver hadn't set off by the start time, or when the driver or staff cancel (a driver must give a reason). Later, half goes to the driver (the same `app.payments.*` settings as rides).
+- A self-drive rental page offers "Rather not drive? Hire a checked driver for this rental", with the search filled in.
+
 ## The staff console (`/admin`)
 
 1. Log in with the number from step 2. You become **super admin** automatically (only when no super admin exists yet).
@@ -112,6 +124,7 @@ What you can do there:
 - **Help requests** — members' questions, oldest first; reply within 24 hours. Answered requests close by themselves after a quiet week.
 - **Payments** — what's held for upcoming trips, owed to drivers and given as credits, with three health checks (the ledger balances, wallets match it, held money matches open payments); every payment and refund (failed refunds can be retried); **Payouts** to drivers. A member's page shows their wallet and lets refund-handling staff give goodwill credits.
 - **Rentals** — check new car listings (photos, RC and insurance; every document view is recorded) and approve or send them back; settle disputes about charges after a return; see every rental and cancel one if needed (everything is refunded).
+- **Drivers** — check new driver partners (licence details, areas, prices, optional police certificate) and approve them or send them back; take a live driver off the road (their upcoming trips are cancelled and refunded); see every hired-driver trip and cancel one with a full refund.
 - **ID checks** — compare the ID photo (or driving licence) with the profile, then approve or reject with a reason. Every photo view is recorded; photos are stored encrypted and deleted 30 days after the decision (at once if a full Aadhaar number is visible).
 - **Staff** — add people (they must have logged in once) as Admin, Moderator or Support; change roles; reset two-step verification for a lost phone.
 - **Audit log** — every staff action, permanently recorded and hash-chained; "Verify integrity" proves nothing was changed.
@@ -119,7 +132,7 @@ What you can do there:
 | Role | Can do |
 |---|---|
 | Super admin | Everything, including feature switches, staff, settings and driver payouts |
-| Admin | Members (incl. phone numbers), restrictions, ID checks, reports, SOS alerts, help requests, rentals, payments and credits, audit log |
+| Admin | Members (incl. phone numbers), restrictions, ID checks, reports, SOS alerts, help requests, rentals, drivers, payments and credits, audit log |
 | Moderator | Members, restrictions, ID checks, reports, SOS alerts, help requests |
 | Support | Members (incl. phone numbers), SOS alerts, help requests |
 
@@ -151,6 +164,7 @@ backend/                Spring Boot API, one module per feature (checked by Spri
     verification/       email codes, ID checks
     payments/           checkout (Razorpay), refunds, credits, earnings, payouts, ledger
     rentals/            car listings, rental bookings, pickup/return records, disputes
+    drivers/            driver partners (licence, areas, prices), hired trips, start codes, ratings
     admin/              staff console APIs
     files/ config/ common/
   src/main/resources/db/migration/   Flyway database migrations
@@ -175,7 +189,7 @@ Set these environment variables (do not use the `dev` profile):
 | `JWT_SECRET` | Random secret, at least 32 characters |
 | `DATA_ENCRYPTION_KEY` | Base64 of 32 random bytes; encrypts 2FA secrets and other sensitive fields |
 | `SUPER_ADMIN_PHONE` | The owner's number (+91…), made super admin at first login |
-| `STORAGE_DIR` | Where profile and car photos and (encrypted) ID photos, car documents and pickup/return photos are stored |
+| `STORAGE_DIR` | Where profile and car photos and (encrypted) ID photos, car documents, pickup/return photos and police certificates are stored |
 | `PUBLIC_URL` | The site's address, used in links sent by text message (e.g. trip-sharing links) |
 | `CORS_ALLOWED_ORIGINS` | Only if the web app is served from a different domain than the API |
 | `LEGAL_COMPANY`, `GRIEVANCE_OFFICER`, `GRIEVANCE_EMAIL`, `LEGAL_ADDRESS` | Shown on the Grievance officer page (the IT Rules 2021 ask for them) |

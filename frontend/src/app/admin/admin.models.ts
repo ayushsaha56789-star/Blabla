@@ -230,6 +230,7 @@ export interface Dashboard {
   idChecksWaiting: number;
   rentalsToCheck: number;
   rentalDisputes: number;
+  driversToCheck: number;
   staffCount: number;
   featuresOn: number;
   featuresTotal: number;
