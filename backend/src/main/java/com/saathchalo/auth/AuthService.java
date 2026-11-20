@@ -85,7 +85,7 @@ public class AuthService {
 		ensureCanLogIn(phone);
 		UserService.LoginResult login = users.loginByPhone(phone);
 		access.bootstrapSuperAdmin(login.me().id(), phone, login.me().displayName());
-		return startSession(login.me());
+		return startSession(login.me(), login.restored());
 	}
 
 	/** Exchanges a refresh token for a new access token, rotating the refresh token. */
@@ -97,7 +97,7 @@ public class AuthService {
 			.orElseThrow(() -> ApiException.unauthorized("session_expired", "Your session has ended. Please log in again."));
 		token.revoke(now);
 		ensureNotSuspended(token.getUserId());
-		return startSession(users.me(token.getUserId()));
+		return startSession(users.me(token.getUserId()), false);
 	}
 
 	@Transactional
@@ -109,7 +109,7 @@ public class AuthService {
 		});
 	}
 
-	private Session startSession(MeResponse me) {
+	private Session startSession(MeResponse me, boolean restored) {
 		Instant now = clock.instant();
 		String raw = Crypto.randomUrlSafeToken(32);
 		refreshTokens.save(new RefreshToken(me.id(), Crypto.sha256Hex(raw), now, now.plus(config.refreshTokenTtl())));
@@ -117,7 +117,7 @@ public class AuthService {
 		StaffInfo staff = access.membership(me.id())
 			.map(m -> new StaffInfo(m.roleCode(), m.roleName(), twoFactor.isEnabled(me.id())))
 			.orElse(null);
-		AuthResponse body = new AuthResponse(accessToken.value(), accessToken.expiresAt(), me, staff);
+		AuthResponse body = new AuthResponse(accessToken.value(), accessToken.expiresAt(), me, staff, restored);
 		return new Session(body, raw, config.refreshTokenTtl());
 	}
 

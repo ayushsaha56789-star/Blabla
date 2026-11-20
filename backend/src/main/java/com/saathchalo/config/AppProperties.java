@@ -23,7 +23,9 @@ public record AppProperties(
 		@Valid @NotNull Security security,
 		Bootstrap bootstrap,
 		@Valid @NotNull Staff staff,
-		@Valid @NotNull Rides rides) {
+		@Valid @NotNull Rides rides,
+		@NotBlank String publicUrl,
+		Legal legal) {
 
 	public record Jwt(@NotBlank String secret, @NotBlank String issuer,
 			@NotNull Duration accessTokenTtl, @NotNull Duration refreshTokenTtl) {
@@ -61,6 +63,10 @@ public record AppProperties(
 	 */
 	public record Rides(@Positive double suggestedPricePerKm, @Positive double maxPricePerKm, @Min(1) int minPrice,
 			@Min(1) int searchRadiusKm, @Min(1) int maxDaysAhead, @NotNull Duration requestTtl) {
+	}
+
+	/** Who members can complain to, as the law asks us to publish. Blank values mean "not appointed yet". */
+	public record Legal(String company, String grievanceOfficer, String grievanceEmail, String address) {
 	}
 
 	public record Cors(List<String> allowedOrigins) {

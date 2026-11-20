@@ -33,10 +33,13 @@
           @if (me.phoneVerified) {
             <span class="badge badge-success"><app-icon name="checkCircle" [size]="14" /> Phone verified</span>
           }
+          @if (me.emailVerified) {
+            <span class="badge badge-success"><app-icon name="mail" [size]="14" /> Email verified</span>
+          }
           @if (me.idVerified) {
             <span class="badge badge-success"><app-icon name="shield" [size]="14" /> ID verified</span>
-          } @else {
-            <span class="badge badge-muted"><app-icon name="shield" [size]="14" /> ID check coming soon</span>
+          } @else if (features.isOn('verification.id')) {
+            <a routerLink="/profile" fragment="verification" class="badge badge-muted hover:underline"><app-icon name="shield" [size]="14" /> Get ID verified</a>
           }
         </div>
       </div>
@@ -158,8 +161,15 @@
       }
     </form>
 
-    @if (features.isOn('rides.publish')) {
-      <app-my-cars class="mt-6 max-lg:mb-20" />
+    @if (features.isOn('verification')) {
+      <app-verification id="verification" class="mt-6 scroll-mt-24" />
     }
+    @if (features.isOn('rides.publish')) {
+      <app-my-cars class="mt-6" />
+    }
+    @if (features.isOn('safety.sos')) {
+      <app-emergency-contacts id="safety" class="mt-6 scroll-mt-24" />
+    }
+    <div class="h-20 lg:hidden" aria-hidden="true"></div>
   </div>
 }

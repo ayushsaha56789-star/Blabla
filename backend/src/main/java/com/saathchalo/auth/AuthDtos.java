@@ -21,7 +21,9 @@ public final class AuthDtos {
 	}
 
 	/** {@code staff} is null for members who are not on the staff. */
-	public record AuthResponse(String accessToken, Instant expiresAt, MeResponse user, StaffInfo staff) {
+	/** {@code accountRestored}: this login cancelled the member's request to delete their account. */
+	public record AuthResponse(String accessToken, Instant expiresAt, MeResponse user, StaffInfo staff,
+			boolean accountRestored) {
 	}
 
 	public record StaffInfo(String role, String roleName, boolean totpEnabled) {

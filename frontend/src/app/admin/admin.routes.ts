@@ -39,6 +39,36 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/ride-detail').then((m) => m.RideDetailPage),
       },
       {
+        path: 'safety',
+        title: 'SOS alerts · Staff console',
+        canActivate: [permissionGuard('support.tickets')],
+        loadComponent: () => import('./pages/safety').then((m) => m.SafetyPage),
+      },
+      {
+        path: 'support',
+        title: 'Help requests · Staff console',
+        canActivate: [permissionGuard('support.tickets')],
+        loadComponent: () => import('./pages/support').then((m) => m.SupportPage),
+      },
+      {
+        path: 'support/:id',
+        title: 'Help request · Staff console',
+        canActivate: [permissionGuard('support.tickets')],
+        loadComponent: () => import('./pages/support-ticket').then((m) => m.SupportTicketPage),
+      },
+      {
+        path: 'verifications',
+        title: 'ID checks · Staff console',
+        canActivate: [permissionGuard('verification.review')],
+        loadComponent: () => import('./pages/verifications').then((m) => m.VerificationsPage),
+      },
+      {
+        path: 'reports',
+        title: 'Reports · Staff console',
+        canActivate: [permissionGuard('content.moderate')],
+        loadComponent: () => import('./pages/reports').then((m) => m.ReportsPage),
+      },
+      {
         path: 'features',
         title: 'Feature switches · Staff console',
         canActivate: [permissionGuard('features.manage')],

@@ -10,6 +10,47 @@
 @if (error()) {
   <div class="card mt-8 p-6 text-sm text-rose-600 dark:text-rose-400" role="alert">{{ error() }}</div>
 } @else if (data(); as d) {
+  @if (d.openSosAlerts) {
+    <a routerLink="/admin/safety" class="mt-8 flex items-center gap-4 rounded-3xl bg-rose-600 p-5 text-white shadow-lg shadow-rose-600/25 transition hover:bg-rose-700" role="alert">
+      <app-icon name="shieldAlert" [size]="28" />
+      <span class="flex-1">
+        <span class="block text-lg font-extrabold">{{ d.openSosAlerts }} open SOS {{ d.openSosAlerts === 1 ? 'alert' : 'alerts' }}</span>
+        <span class="block text-rose-50">A member needs help. Open the SOS page and call them.</span>
+      </span>
+      <app-icon name="arrowRight" [size]="22" />
+    </a>
+  }
+  @if (d.openReports && session.can('content.moderate')) {
+    <a routerLink="/admin/reports" class="mt-4 flex items-center gap-4 rounded-3xl p-5 transition"
+       [class]="d.overdueReports ? 'bg-amber-500 text-white hover:bg-amber-600' : 'card hover:shadow-md'">
+      <app-icon name="flag" [size]="24" />
+      <span class="flex-1">
+        <span class="block font-extrabold">{{ d.openReports }} open {{ d.openReports === 1 ? 'report' : 'reports' }}@if (d.overdueReports) { · {{ d.overdueReports }} overdue }</span>
+        <span class="block text-sm opacity-80">Acknowledge within 24 hours, resolve within 15 days.</span>
+      </span>
+      <app-icon name="arrowRight" [size]="20" />
+    </a>
+  }
+  @if (d.idChecksWaiting && session.can('verification.review')) {
+    <a routerLink="/admin/verifications" class="card mt-4 flex items-center gap-4 rounded-3xl p-5 transition hover:shadow-md">
+      <app-icon name="idCard" [size]="24" />
+      <span class="flex-1">
+        <span class="block font-extrabold">{{ d.idChecksWaiting }} ID {{ d.idChecksWaiting === 1 ? 'check' : 'checks' }} waiting</span>
+        <span class="block text-sm opacity-80">Compare each photo with the member's profile.</span>
+      </span>
+      <app-icon name="arrowRight" [size]="20" />
+    </a>
+  }
+  @if (d.ticketsWaiting && session.can('support.tickets')) {
+    <a routerLink="/admin/support" class="card mt-4 flex items-center gap-4 rounded-3xl p-5 transition hover:shadow-md">
+      <app-icon name="chat" [size]="24" />
+      <span class="flex-1">
+        <span class="block font-extrabold">{{ d.ticketsWaiting }} help {{ d.ticketsWaiting === 1 ? 'request' : 'requests' }} waiting for a reply</span>
+        <span class="block text-sm opacity-80">Reply within 24 hours.</span>
+      </span>
+      <app-icon name="arrowRight" [size]="20" />
+    </a>
+  }
   <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <!-- Members + chart -->
     <section class="card animate-fade-up p-6 sm:col-span-2 lg:row-span-2">

@@ -48,6 +48,32 @@ public final class FieldEncryptor {
 		}
 	}
 
+	/** For files: the 12-byte IV followed by the AES-GCM ciphertext. */
+	public byte[] encryptBytes(byte[] plain) {
+		try {
+			byte[] iv = new byte[IV_BYTES];
+			random.nextBytes(iv);
+			Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+			cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(TAG_BITS, iv));
+			byte[] encrypted = cipher.doFinal(plain);
+			return ByteBuffer.allocate(iv.length + encrypted.length).put(iv).put(encrypted).array();
+		}
+		catch (GeneralSecurityException e) {
+			throw new IllegalStateException("Encryption failed", e);
+		}
+	}
+
+	public byte[] decryptBytes(byte[] stored) {
+		try {
+			Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+			cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(TAG_BITS, stored, 0, IV_BYTES));
+			return cipher.doFinal(stored, IV_BYTES, stored.length - IV_BYTES);
+		}
+		catch (GeneralSecurityException e) {
+			throw new IllegalStateException("Decryption failed (wrong key or tampered file)", e);
+		}
+	}
+
 	public String decrypt(String stored) {
 		if (stored == null || !stored.startsWith(PREFIX)) {
 			throw new IllegalArgumentException("Unknown encrypted value format");

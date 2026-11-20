@@ -1,0 +1,144 @@
+<div class="container-page py-4 sm:py-6 lg:py-8">
+  <div class="card grid h-[calc(100dvh-6.5rem)] min-h-[28rem] overflow-hidden lg:h-[calc(100dvh-9rem)] lg:grid-cols-[21rem_1fr]">
+    <!-- Inbox -->
+    <section class="flex min-h-0 flex-col border-slate-100 lg:border-r dark:border-slate-800" [class.max-lg:hidden]="!!id()" aria-labelledby="inbox-heading">
+      <header class="border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+        <h1 id="inbox-heading" class="text-xl font-extrabold tracking-tight">Messages</h1>
+      </header>
+      <div class="min-h-0 flex-1 overflow-y-auto">
+        @if (inbox() === null) {
+          @for (i of [1, 2, 3]; track i) {
+            <div class="flex gap-3 px-5 py-4"><div class="skeleton h-11 w-11 rounded-full"></div><div class="flex-1"><div class="skeleton h-4 w-1/2"></div><div class="skeleton mt-2 h-3 w-3/4"></div></div></div>
+          }
+        } @else if (!inbox()!.length) {
+          <div class="p-8 text-center">
+            <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-400"><app-icon name="chat" [size]="26" /></span>
+            <p class="mt-4 font-semibold">No messages yet</p>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Open any ride and tap "Message" to ask the driver about pickup points, luggage or anything else.</p>
+            <a routerLink="/search" class="btn btn-secondary btn-sm mt-4">Find a ride</a>
+          </div>
+        } @else {
+          <ul>
+            @for (c of inbox(); track c.id) {
+              <li>
+                <a [routerLink]="['/messages', c.id]" class="flex gap-3 px-5 py-3.5 transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                   [class]="c.id === id() ? 'bg-brand-50/70 dark:bg-brand-500/10' : ''" [attr.aria-current]="c.id === id() ? 'page' : null">
+                  <app-avatar [url]="c.other.avatarUrl" [name]="c.other.displayName" [size]="44" />
+                  <span class="min-w-0 flex-1">
+                    <span class="flex items-baseline justify-between gap-2">
+                      <span class="truncate font-semibold">{{ c.other.displayName }}</span>
+                      <time class="shrink-0 text-xs text-slate-400" [attr.datetime]="c.lastMessageAt">{{ c.lastMessageAt | date: 'd MMM, h:mm a' }}</time>
+                    </span>
+                    <span class="block truncate text-xs text-slate-500 dark:text-slate-400">{{ c.ride.fromName }} → {{ c.ride.toName }} · {{ c.ride.departureAt | date: 'd MMM' }}</span>
+                    <span class="mt-0.5 flex items-center gap-2">
+                      <span class="truncate text-sm" [class]="c.unread ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'">{{ c.lastFromMe ? 'You: ' : '' }}{{ c.lastMessage }}</span>
+                      @if (c.unread) { <span class="ml-auto shrink-0 rounded-full bg-brand-600 px-2 text-xs leading-5 font-bold text-white" [attr.aria-label]="c.unread + ' unread'">{{ c.unread }}</span> }
+                    </span>
+                  </span>
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </section>
+
+    <!-- Conversation -->
+    <section class="flex min-h-0 flex-col" [class.max-lg:hidden]="!id()" aria-label="Chat">
+      @if (!id()) {
+        <div class="m-auto max-w-xs p-8 text-center text-slate-500 dark:text-slate-400">
+          <app-icon name="chat" [size]="36" class="text-slate-300 dark:text-slate-600" />
+          <p class="mt-3">Choose a chat on the left.</p>
+        </div>
+      } @else if (convoError()) {
+        <div class="m-auto max-w-sm p-8 text-center" role="alert">
+          <p class="font-semibold">{{ convoError() }}</p>
+          <a routerLink="/messages" class="btn btn-secondary btn-sm mt-4">Back to messages</a>
+        </div>
+      } @else if (convo(); as c) {
+        <header class="flex items-center gap-3 border-b border-slate-100 px-3 py-3 sm:px-5 dark:border-slate-800">
+          <button type="button" class="btn btn-ghost btn-icon lg:hidden" (click)="back()" aria-label="Back to messages"><app-icon name="arrowLeft" [size]="20" /></button>
+          <a [routerLink]="['/u', c.other.id]" class="shrink-0"><app-avatar [url]="c.other.avatarUrl" [name]="c.other.displayName" [size]="40" /></a>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-bold">{{ c.other.displayName }}</span>
+            <span class="block truncate text-xs text-slate-500 dark:text-slate-400">{{ otherRole() }}</span>
+          </span>
+          <a [routerLink]="['/rides', c.ride.id]" class="btn btn-secondary btn-sm shrink-0 max-sm:px-2.5">
+            <app-icon name="route" [size]="16" /><span class="max-sm:sr-only">{{ c.ride.fromName }} → {{ c.ride.toName }}</span>
+          </a>
+          <span class="relative">
+            <button type="button" class="btn btn-ghost btn-icon" (click)="$event.stopPropagation(); menuOpen.set(!menuOpen())" [attr.aria-expanded]="menuOpen()" aria-haspopup="menu" aria-label="More options">
+              <app-icon name="more" [size]="20" />
+            </button>
+            @if (menuOpen()) {
+              <span class="card absolute right-0 z-20 mt-2 block w-56 animate-pop p-1.5 shadow-xl" role="menu">
+                <button type="button" role="menuitem" class="btn btn-ghost btn-sm w-full justify-start" (click)="reporting.set({ type: 'MEMBER', id: c.other.id!, name: c.other.displayName })"><app-icon name="flag" [size]="16" /> Report {{ c.other.displayName }}</button>
+                <button type="button" role="menuitem" class="btn btn-ghost btn-sm w-full justify-start text-rose-600 dark:text-rose-400" (click)="confirmBlock.set(true)"><app-icon name="ban" [size]="16" /> Block {{ c.other.displayName }}</button>
+              </span>
+            }
+          </span>
+        </header>
+        @if (confirmBlock()) {
+          <div class="flex flex-wrap items-center gap-3 border-b border-rose-200 bg-rose-50 px-4 py-3 text-sm dark:border-rose-500/30 dark:bg-rose-500/10" role="alertdialog" aria-label="Block">
+            <span class="flex-1">Block {{ c.other.displayName }}? Neither of you can message or book the other. They won't be told.</span>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="confirmBlock.set(false)">Cancel</button>
+            <button type="button" class="btn btn-sm bg-rose-600 text-white hover:bg-rose-700" (click)="blockOther()">Block</button>
+          </div>
+        }
+
+        <div #scroller class="min-h-0 flex-1 space-y-1 overflow-y-auto bg-slate-50/60 px-3 py-4 sm:px-5 dark:bg-slate-950/40" aria-live="polite">
+          <p class="mx-auto mb-3 max-w-md rounded-2xl bg-white px-4 py-2.5 text-center text-xs text-slate-500 shadow-sm dark:bg-slate-900 dark:text-slate-400">
+            <app-icon name="shield" [size]="13" class="mr-1 align-[-2px] text-brand-600" />
+            Keep chatting here until a seat is confirmed. Never pay in advance or share a login code.
+          </p>
+          @for (row of rows(); track row.key) {
+            @if (row.kind === 'day') {
+              <p class="py-2 text-center text-xs font-semibold text-slate-400">
+                @if (isDayLabel(row.label)) { {{ row.label }} } @else { {{ row.label + 'T12:00:00Z' | date: 'EEE, d MMM' : 'UTC' }} }
+              </p>
+            } @else {
+              <div class="flex" [class.justify-end]="row.m.mine">
+                <div class="max-w-[85%] sm:max-w-[70%]">
+                  <div class="rounded-2xl px-3.5 py-2 text-[0.95rem] break-words whitespace-pre-line"
+                       [class]="row.m.hidden ? 'border border-dashed border-slate-300 italic text-slate-400 dark:border-slate-700'
+                              : row.m.mine ? 'rounded-br-md bg-brand-600 text-white' : 'rounded-bl-md bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-slate-100'">
+                    {{ row.m.hidden ? 'Message removed by SaathChalo' : row.m.body }}
+                  </div>
+                  <p class="mt-0.5 px-1 text-[0.7rem] text-slate-400" [class.text-right]="row.m.mine">
+                    {{ row.m.createdAt | date: 'h:mm a' }}@if (row.seen) { · Seen }
+                    @if (!row.m.mine && !row.m.hidden) {
+                      · <button type="button" class="hover:text-slate-600 hover:underline dark:hover:text-slate-300" (click)="reporting.set({ type: 'MESSAGE', id: row.m.id, name: null })">Report</button>
+                    }
+                  </p>
+                </div>
+              </div>
+            }
+          } @empty {
+            <p class="py-8 text-center text-sm text-slate-500 dark:text-slate-400">Say hello to {{ c.other.displayName }} 👋</p>
+          }
+        </div>
+
+        <footer class="border-t border-slate-100 p-3 sm:p-4 dark:border-slate-800">
+          @if (c.canSend) {
+            <form class="flex items-end gap-2" (submit)="$event.preventDefault(); send()">
+              <label for="composer" class="sr-only">Message to {{ c.other.displayName }}</label>
+              <textarea id="composer" rows="1" maxlength="1000" class="input max-h-40 min-h-12 resize-none py-3" placeholder="Write a message…"
+                        [value]="draft()" (input)="draft.set($any($event.target).value)" (keydown)="onKeydown($event)"></textarea>
+              <button type="submit" class="btn btn-primary h-12 w-12 shrink-0 p-0" [disabled]="sending() || !draft().trim()" aria-label="Send">
+                <app-icon name="arrowRight" [size]="20" />
+              </button>
+            </form>
+            @if (error()) { <p class="field-error" role="alert">{{ error() }}</p> }
+          } @else {
+            <p class="text-center text-sm text-slate-500 dark:text-slate-400">{{ c.cannotSendReason }}</p>
+          }
+        </footer>
+      } @else {
+        <div class="m-auto"><span class="block h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-brand-600" aria-label="Loading"></span></div>
+      }
+    </section>
+    @if (reporting(); as rep) {
+      <app-report-dialog [targetType]="rep.type" [targetId]="rep.id" [name]="rep.name" (closed)="reporting.set(null)" />
+    }
+  </div>
+</div>

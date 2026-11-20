@@ -8,7 +8,11 @@ import com.saathchalo.audit.AuditFilter;
 import com.saathchalo.audit.AuditService;
 import com.saathchalo.features.FeatureCatalog;
 import com.saathchalo.features.FeatureService;
+import com.saathchalo.moderation.ReportService;
 import com.saathchalo.rides.RideAdmin;
+import com.saathchalo.safety.SosService;
+import com.saathchalo.support.SupportService;
+import com.saathchalo.verification.IdCheckService;
 import com.saathchalo.user.MemberDirectory;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,14 +36,27 @@ public class AdminDashboardController {
 
 	private final RideAdmin rides;
 
+	private final SosService sos;
+
+	private final ReportService reports;
+
+	private final SupportService support;
+
+	private final IdCheckService idChecks;
+
 	public AdminDashboardController(AdminContext context, MemberDirectory members, AccessService access,
-			FeatureService features, AuditService audit, RideAdmin rides) {
+			FeatureService features, AuditService audit, RideAdmin rides, SosService sos,
+			ReportService reports, SupportService support, IdCheckService idChecks) {
 		this.context = context;
 		this.members = members;
 		this.access = access;
 		this.features = features;
 		this.audit = audit;
 		this.rides = rides;
+		this.sos = sos;
+		this.reports = reports;
+		this.support = support;
+		this.idChecks = idChecks;
 	}
 
 	@GetMapping
@@ -47,7 +64,9 @@ public class AdminDashboardController {
 	public Dashboard dashboard() {
 		boolean canSeeAudit = context.current().can(Permission.AUDIT_VIEW.code());
 		long total = FeatureCatalog.all().stream().filter(d -> !d.global()).count();
-		return new Dashboard(members.stats(14), rides.stats(), access.countStaff(), features.countOn(), total,
+		return new Dashboard(members.stats(14), rides.stats(), sos.openCount(), reports.openCount(), reports.overdueCount(),
+				support.waitingForStaff(), idChecks.pendingCount(),
+				access.countStaff(), features.countOn(), total,
 				features.isMaintenance(),
 				features.signupsOpen(),
 				canSeeAudit ? audit.search(new AuditFilter(null, null, null, null, null), 0, 8).items() : List.of());

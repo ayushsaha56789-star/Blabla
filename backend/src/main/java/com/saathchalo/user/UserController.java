@@ -51,7 +51,7 @@ public class UserController {
 
 	@GetMapping("/{id}")
 	public PublicProfileResponse publicProfile(@PathVariable UUID id) {
-		return userService.publicProfile(id);
+		return userService.profilePage(id);
 	}
 
 	private static UUID userId(Jwt jwt) {

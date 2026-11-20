@@ -16,10 +16,10 @@ import { Toasts } from './layout/toasts';
   imports: [RouterOutlet, Navbar, Footer, Toasts, MaintenancePage, SuspendedPage],
   template: `
     @if (!inConsole()) {
-      <a href="#main" class="sr-only z-50 rounded-xl bg-brand-600 px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3">Skip to content</a>
+      <a href="#main" (click)="skipToMain($event)" class="sr-only z-50 rounded-xl bg-brand-600 px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3">Skip to content</a>
       <app-navbar />
     }
-    <main id="main" [class]="inConsole() ? '' : 'min-h-[calc(100dvh-4rem)]'">
+    <main id="main" tabindex="-1" class="outline-none" [class]="inConsole() ? '' : 'min-h-[calc(100dvh-4rem)]'">
       @if (!inConsole() && auth.suspension(); as s) {
         <app-suspended-page [suspension]="s" />
       } @else if (showMaintenance()) {
@@ -47,6 +47,14 @@ export class App {
   );
 
   /** The staff console has its own full-screen layout. */
+  /** With the site's base URL, a plain "#main" link would load the home page; move focus instead. */
+  protected skipToMain(event: Event): void {
+    event.preventDefault();
+    const main = document.getElementById('main');
+    main?.focus();
+    main?.scrollIntoView();
+  }
+
   protected readonly inConsole = computed(() => this.url().startsWith('/admin'));
   /** Maintenance closes the member site, but login stays open so staff can reach the console. */
   protected readonly showMaintenance = computed(

@@ -2,6 +2,7 @@ package com.saathchalo.rides.internal;
 
 import com.saathchalo.rides.BookingStatus;
 import jakarta.persistence.LockModeType;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +25,8 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 	List<Booking> findByPassengerIdOrderByCreatedAtDesc(UUID passengerId);
 
 	List<Booking> findByPassengerIdAndRideIdIn(UUID passengerId, Collection<UUID> rideIds);
+
+	List<Booking> findByPassengerIdAndStatusAndCreatedAtAfter(UUID passengerId, BookingStatus status, Instant after);
 
 	/** Only the ride id, without loading the booking (so it can be loaded fresh after the ride is locked). */
 	@Query("select b.rideId from Booking b where b.id = :id")

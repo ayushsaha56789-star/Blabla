@@ -22,7 +22,8 @@ public class User {
 	@GeneratedValue(strategy = GenerationType.UUID)
 	private UUID id;
 
-	@Column(nullable = false, unique = true, length = 16)
+	/** Null once an account is erased. */
+	@Column(unique = true, length = 16)
 	private String phone;
 
 	private String firstName;
@@ -54,6 +55,8 @@ public class User {
 
 	private boolean idVerified;
 
+	private boolean emailVerified;
+
 	private String city;
 
 	private boolean betaTester;
@@ -65,6 +68,14 @@ public class User {
 	@UpdateTimestamp
 	@Column(nullable = false)
 	private Instant updatedAt;
+
+	/** Set while the member's request to delete their account waits out its 30 days. */
+	private Instant deletionRequestedAt;
+
+	private Instant deletionDueAt;
+
+	/** When the account was erased. The row stays so other members' trip history still makes sense. */
+	private Instant deletedAt;
 
 	protected User() {
 	}
@@ -80,6 +91,9 @@ public class User {
 
 	/** "Priya S." — first name plus last initial, as shown to other members. */
 	public String displayName() {
+		if (deletedAt != null) {
+			return "Former member";
+		}
 		if (firstName == null || firstName.isBlank()) {
 			return "SaathChalo member";
 		}
@@ -89,6 +103,48 @@ public class User {
 		return firstName + " " + lastName.substring(0, 1).toUpperCase() + ".";
 	}
 
+	public void scheduleDeletion(Instant requestedAt, Instant dueAt) {
+		this.deletionRequestedAt = requestedAt;
+		this.deletionDueAt = dueAt;
+	}
+
+	public void cancelDeletion() {
+		this.deletionRequestedAt = null;
+		this.deletionDueAt = null;
+	}
+
+	/** Removes everything personal. The row stays so other members' trip history still makes sense. */
+	public void erase(Instant now) {
+		phone = null;
+		firstName = null;
+		lastName = null;
+		email = null;
+		gender = null;
+		dateOfBirth = null;
+		bio = null;
+		avatarPath = null;
+		city = null;
+		prefChat = ChatPreference.SOMETIMES;
+		prefMusic = true;
+		prefSmoking = false;
+		prefPets = false;
+		phoneVerified = false;
+		idVerified = false;
+		emailVerified = false;
+		betaTester = false;
+		deletionRequestedAt = null;
+		deletionDueAt = null;
+		deletedAt = now;
+	}
+
+	/** Deleting their account, or already erased: hidden from other members. */
+	public boolean isGone() {
+		return deletionDueAt != null || deletedAt != null;
+	}
+
+	public Instant getDeletionRequestedAt() { return deletionRequestedAt; }
+	public Instant getDeletionDueAt() { return deletionDueAt; }
+	public Instant getDeletedAt() { return deletedAt; }
 	public UUID getId() { return id; }
 	public String getPhone() { return phone; }
 	public String getFirstName() { return firstName; }
@@ -113,6 +169,9 @@ public class User {
 	public void setPrefSmoking(boolean prefSmoking) { this.prefSmoking = prefSmoking; }
 	public boolean isPrefPets() { return prefPets; }
 	public void setPrefPets(boolean prefPets) { this.prefPets = prefPets; }
+	public boolean isEmailVerified() { return emailVerified; }
+	public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+	public void setIdVerified(boolean idVerified) { this.idVerified = idVerified; }
 	public boolean isPhoneVerified() { return phoneVerified; }
 	public void setPhoneVerified(boolean phoneVerified) { this.phoneVerified = phoneVerified; }
 	public boolean isIdVerified() { return idVerified; }

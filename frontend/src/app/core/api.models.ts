@@ -21,6 +21,7 @@ export interface Me {
   prefPets: boolean;
   phoneVerified: boolean;
   idVerified: boolean;
+  emailVerified: boolean;
   betaTester: boolean;
   profileComplete: boolean;
   memberSince: string;
@@ -39,7 +40,11 @@ export interface PublicProfile {
   prefPets: boolean;
   phoneVerified: boolean;
   idVerified: boolean;
+  emailVerified: boolean;
   memberSince: string;
+  /** Average stars from trip reviews; null until someone reviews them. */
+  rating: number | null;
+  reviewCount: number;
 }
 
 export interface UpdateProfileRequest {
@@ -76,6 +81,8 @@ export interface AuthResponse {
   expiresAt: string;
   user: Me;
   staff: StaffInfo | null;
+  /** This login cancelled the member's request to delete their account. */
+  accountRestored?: boolean;
 }
 
 export interface FeaturesResponse {

@@ -51,10 +51,51 @@ export const routes: Routes = [
     loadComponent: () => import('./features/rides/ride-page').then((m) => m.RidePage),
   },
   {
+    path: 'trip/:token',
+    title: 'Shared trip · SaathChalo',
+    canActivate: [featureGuard('safety.trip_share')],
+    loadComponent: () => import('./features/safety/shared-trip-page').then((m) => m.SharedTripPage),
+  },
+  {
+    path: 'messages',
+    title: 'Messages · SaathChalo',
+    canActivate: [authGuard, featureGuard('chat')],
+    loadComponent: () => import('./features/chat/messages-page').then((m) => m.MessagesPage),
+  },
+  {
+    path: 'messages/:id',
+    title: 'Messages · SaathChalo',
+    canActivate: [authGuard, featureGuard('chat')],
+    loadComponent: () => import('./features/chat/messages-page').then((m) => m.MessagesPage),
+  },
+  {
     path: 'my-rides',
     title: 'My rides · SaathChalo',
     canActivate: [authGuard, featureGuard('rides')],
     loadComponent: () => import('./features/rides/my-rides-page').then((m) => m.MyRidesPage),
+  },
+  {
+    path: 'help',
+    title: 'Help · SaathChalo',
+    loadComponent: () => import('./features/help/help-page').then((m) => m.HelpPage),
+  },
+  {
+    path: 'help/requests/:id',
+    title: 'Help request · SaathChalo',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/help/request-page').then((m) => m.RequestPage),
+  },
+  {
+    path: 'privacy-centre',
+    title: 'Privacy centre · SaathChalo',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/privacy/privacy-centre-page').then((m) => m.PrivacyCentrePage),
+  },
+  { path: 'legal', pathMatch: 'full', redirectTo: 'legal/terms' },
+  {
+    path: 'legal/:doc',
+    title: 'Policies · SaathChalo',
+    loadComponent: () => import('./features/legal/legal-page').then((m) => m.LegalPage),
   },
   {
     path: 'admin',

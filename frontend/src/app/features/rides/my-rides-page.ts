@@ -10,12 +10,13 @@ import { RidesApi } from '../../core/rides-api';
 import { TripsService } from '../../core/trips.service';
 import { Avatar } from '../../shared/avatar';
 import { Icon } from '../../shared/icon';
+import { PendingReviews } from './pending-reviews';
 
 /** My rides: trips I drive and seats I booked, upcoming or past. */
 @Component({
   selector: 'app-my-rides-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, Icon, Avatar],
+  imports: [DatePipe, RouterLink, Icon, Avatar, PendingReviews],
   template: `
     <div class="container-page max-w-3xl py-8 sm:py-12">
       <div class="flex flex-wrap items-end justify-between gap-4">
@@ -28,6 +29,8 @@ import { Icon } from '../../shared/icon';
           <button type="button" role="tab" class="segment px-5" [class.segment-on]="when() === 'past'" [attr.aria-selected]="when() === 'past'" (click)="when.set('past')">Past</button>
         </div>
       </div>
+
+      <app-pending-reviews />
 
       @if (error()) {
         <p class="card mt-6 p-6 text-center" role="alert">{{ error() }}</p>

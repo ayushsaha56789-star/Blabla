@@ -8,6 +8,7 @@ import com.saathchalo.rides.internal.Booking;
 import com.saathchalo.rides.internal.BookingRepository;
 import com.saathchalo.rides.internal.Ride;
 import com.saathchalo.rides.internal.RideRepository;
+import com.saathchalo.user.BlockService;
 import com.saathchalo.user.MemberProfiles;
 import com.saathchalo.user.MemberProfiles.Traveller;
 import java.time.Clock;
@@ -33,16 +34,19 @@ public class BookingService {
 
 	private final RateLimiter limiter;
 
+	private final BlockService blocks;
+
 	private final RideViews views;
 
 	private final Clock clock;
 
 	public BookingService(RideRepository rides, BookingRepository bookings, MemberProfiles members, RateLimiter limiter,
-			RideViews views, Clock clock) {
+			BlockService blocks, RideViews views, Clock clock) {
 		this.rides = rides;
 		this.bookings = bookings;
 		this.members = members;
 		this.limiter = limiter;
+		this.blocks = blocks;
 		this.views = views;
 		this.clock = clock;
 	}
@@ -59,6 +63,9 @@ public class BookingService {
 		}
 		if (ride.isLadiesOnly() && !me.isWoman()) {
 			throw ApiException.forbidden("ladies_only", "This ride is for women only.");
+		}
+		if (blocks.blockedEitherWay(passengerId, ride.getDriverId())) {
+			throw ApiException.forbidden("blocked", "You can't book this ride.");
 		}
 		if (ride.getStatus() != RideStatus.SCHEDULED) {
 			throw ApiException.conflict("ride_not_available", "This ride is no longer available.");

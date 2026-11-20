@@ -11,8 +11,9 @@ Built with **Java 25 + Spring Boot 4** (backend) and **Angular 22 + Tailwind CSS
 | 1. Base | Phone-OTP login, profiles, home page, light/dark mode | ✅ Done |
 | 2. Control centre | Super admin, staff roles, two-step verification, feature switches, member restrictions, audit log | ✅ Done |
 | 3. Carpooling | My cars, place search, offer/search/book rides, requests, My rides, price cap | ✅ Done |
-| 4. Trust & safety | Chat, reviews, verification, SOS, trip sharing, privacy centre, help | Next — needs the owner's "start" |
-| 5–11 | Payments, rentals, driver partners, games, Gen-Z features, promotions, launch | Planned — see the architecture doc |
+| 4. Trust & safety | Chat, reviews, SOS and trip sharing, reports and blocks, help centre, privacy centre, email and ID checks | ✅ Done |
+| 5. Payments | Pay online (Razorpay), wallet credits, refunds | Next |
+| 6–11 | Rentals, driver partners, games, Gen-Z features, promotions, launch | Planned — see the architecture doc |
 
 ## Run it locally
 
@@ -58,6 +59,17 @@ npm start
 
 Rules you can change in `backend/src/main/resources/application.properties` (`app.rides.*`): suggested and maximum price per km, minimum price, search radius, how far ahead rides can be offered, and how long requests wait for an answer.
 
+## Trust and safety (try it)
+
+- **Chat:** on a ride page, a passenger can message the driver (and the driver any booked passenger) without sharing phone numbers. New messages show as a badge on the chat icon. Chats close a week after the trip and are deleted after 6 months.
+- **Reviews:** after a completed trip, driver and passengers rate each other (1–5 stars and a comment) from **My rides**. Ratings show on profiles, rides and search results.
+- **Safety:** add up to 3 **emergency contacts** on your profile. Around a trip, the ride page shows **Share my trip** (a private link family can open, with live location if you allow it) and an **SOS** button (call 112, alert SaathChalo staff, text your contacts the link). In dev mode the texts appear in the backend log.
+- **Report and block:** on a profile, chat message, review or ride. Reports go to the console; blocking stops messages and bookings both ways.
+- **Help centre** (`/help`): answers to common questions and a contact form. Staff reply in the console; the member sees "1 new reply" in the menu.
+- **Privacy centre** (account menu): what others see, **Download my data** (a JSON file), blocked members, and **Delete my account** (switched off at once, erased after 30 days; logging in again before then cancels it).
+- **Verification** (on your profile): confirm your email with a 6-digit code (in dev mode the code is shown on screen), and send a photo of an ID for staff to check. Approved members get an "ID verified" badge.
+- **Policies** (`/legal/terms`, `/legal/privacy`, `/legal/community`, `/legal/grievance`): plain-English drafts, marked as drafts until a lawyer has reviewed them (`LEGAL_DRAFT` in `frontend/src/app/features/legal/legal-docs.ts`).
+
 ## The staff console (`/admin`)
 
 1. Log in with the number from step 2. You become **super admin** automatically (only when no super admin exists yet).
@@ -70,15 +82,19 @@ What you can do there:
 - **Feature switches** — turn any part of SaathChalo on or off, for everyone or only for ID-verified members, women, beta testers or chosen cities. Unbuilt features show members a "coming soon" page. Maintenance mode closes the member site; staff can still use the console.
 - **Members** — search, see profiles (phone numbers masked unless you reveal them, which is recorded), suspend accounts or block single areas such as games, with a reason the member sees.
 - **Rides** — every ride, searchable by any town on the route, with its bookings and passengers' messages. Admins and moderators can cancel a ride (for example after a safety report) with a reason; everyone on it sees the reason.
+- **SOS alerts** — open alerts first (also shown as a red banner on the dashboard), with the member's location and a one-tap call; mark as handled and resolved.
+- **Reports** — members' reports with the reported message or review attached; acknowledge within 24 hours, resolve within 15 days (remove the content, take action, or dismiss).
+- **Help requests** — members' questions, oldest first; reply within 24 hours. Answered requests close by themselves after a quiet week.
+- **ID checks** — compare the ID photo with the profile, then approve or reject with a reason. Every photo view is recorded; photos are stored encrypted and deleted 30 days after the decision (at once if a full Aadhaar number is visible).
 - **Staff** — add people (they must have logged in once) as Admin, Moderator or Support; change roles; reset two-step verification for a lost phone.
 - **Audit log** — every staff action, permanently recorded and hash-chained; "Verify integrity" proves nothing was changed.
 
 | Role | Can do |
 |---|---|
 | Super admin | Everything, including feature switches, staff and settings |
-| Admin | Members (incl. phone numbers), restrictions, verifications, moderation, rentals, refunds, audit log |
-| Moderator | Members, restrictions, verifications, moderation |
-| Support | Members (incl. phone numbers), help tickets |
+| Admin | Members (incl. phone numbers), restrictions, ID checks, reports, SOS alerts, help requests, refunds, audit log |
+| Moderator | Members, restrictions, ID checks, reports, SOS alerts, help requests |
+| Support | Members (incl. phone numbers), SOS alerts, help requests |
 
 ## Tests
 
@@ -100,6 +116,12 @@ backend/                Spring Boot API, one module per feature (checked by Spri
     geo/                Indian place search, distance and time estimates
     vehicles/           members' cars (registration numbers encrypted)
     rides/              offering, searching and booking rides; My rides
+    chat/ reviews/      ride chats; ratings after a trip
+    safety/             emergency contacts, trip sharing, SOS
+    moderation/         reports
+    support/            help requests
+    privacy/            data download, account deletion, legal contacts
+    verification/       email codes, ID checks
     admin/              staff console APIs
     files/ config/ common/
   src/main/resources/db/migration/   Flyway database migrations
@@ -124,7 +146,9 @@ Set these environment variables (do not use the `dev` profile):
 | `JWT_SECRET` | Random secret, at least 32 characters |
 | `DATA_ENCRYPTION_KEY` | Base64 of 32 random bytes; encrypts 2FA secrets and other sensitive fields |
 | `SUPER_ADMIN_PHONE` | The owner's number (+91…), made super admin at first login |
-| `STORAGE_DIR` | Where profile photos are stored |
+| `STORAGE_DIR` | Where profile photos and (encrypted) ID photos are stored |
+| `PUBLIC_URL` | The site's address, used in links sent by text message (e.g. trip-sharing links) |
 | `CORS_ALLOWED_ORIGINS` | Only if the web app is served from a different domain than the API |
+| `LEGAL_COMPANY`, `GRIEVANCE_OFFICER`, `GRIEVANCE_EMAIL`, `LEGAL_ADDRESS` | Shown on the Grievance officer page (the IT Rules 2021 ask for them) |
 
-A real SMS provider (MSG91 or Twilio) replaces the development console sender before launch.
+A real SMS provider (MSG91 or Twilio) and a real email provider replace the development console senders before launch (`app.sms.provider`, `app.email.provider`).

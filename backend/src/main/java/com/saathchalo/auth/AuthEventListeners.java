@@ -1,6 +1,7 @@
 package com.saathchalo.auth;
 
 import com.saathchalo.access.StaffAccessRevoked;
+import com.saathchalo.user.MemberLeaving;
 import com.saathchalo.user.MemberSuspended;
 import java.time.Clock;
 import org.springframework.context.event.EventListener;
@@ -28,6 +29,12 @@ class AuthEventListeners {
 
 	@EventListener
 	void memberSuspended(MemberSuspended event) {
+		refreshTokens.revokeAllForUser(event.userId(), clock.instant());
+		staffSessions.revokeAll(event.userId());
+	}
+
+	@EventListener
+	void memberLeaving(MemberLeaving event) {
 		refreshTokens.revokeAllForUser(event.userId(), clock.instant());
 		staffSessions.revokeAll(event.userId());
 	}

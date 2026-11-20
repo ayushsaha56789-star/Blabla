@@ -13,13 +13,15 @@ import { Icon, IconName } from '../../shared/icon';
 import { PhonePipe } from '../../shared/phone.pipe';
 import { CHAT_OPTIONS } from './prefs';
 import { MyCars } from './my-cars';
+import { EmergencyContacts } from './emergency-contacts';
+import { VerificationCard } from './verification-card';
 import { FeaturesService } from '../../core/features.service';
 import { POPULAR_CITIES } from '../../core/cities';
 
 @Component({
   selector: 'app-profile-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, DatePipe, Avatar, Icon, PhonePipe, MyCars],
+  imports: [ReactiveFormsModule, RouterLink, DatePipe, Avatar, Icon, PhonePipe, MyCars, EmergencyContacts, VerificationCard],
   templateUrl: './profile-page.html',
 })
 export class ProfilePage {

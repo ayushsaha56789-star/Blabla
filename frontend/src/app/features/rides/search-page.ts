@@ -11,6 +11,7 @@ import { todayIso } from '../../core/util';
 import { Avatar } from '../../shared/avatar';
 import { Icon } from '../../shared/icon';
 import { RideSearchForm } from '../../shared/ride-search-form';
+import { Stars } from '../../shared/stars';
 
 type Sort = 'time' | 'price' | 'near';
 
@@ -20,7 +21,7 @@ const optionalNumber = (v: unknown) => (v == null || v === '' ? undefined : numb
 @Component({
   selector: 'app-search-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, Icon, Avatar, RideSearchForm],
+  imports: [DatePipe, RouterLink, Icon, Avatar, RideSearchForm, Stars],
   template: `
     <div class="container-page py-6 sm:py-10">
       <h1 class="sr-only">Find a ride</h1>
@@ -135,6 +136,7 @@ const optionalNumber = (v: unknown) => (v == null || v === '' ? undefined : numb
                           <app-avatar [url]="ride.driver.avatarUrl" [name]="ride.driver.displayName" [size]="32" />
                           <span class="truncate text-sm font-semibold">{{ ride.driver.displayName }}</span>
                           @if (ride.driver.idVerified) { <app-icon name="shield" [size]="15" class="text-brand-600" /> }
+                          <app-stars class="text-sm" [value]="ride.driver.rating" [count]="ride.driver.reviewCount" />
                         </span>
                         @if (ride.car) { <span class="text-sm text-slate-500 dark:text-slate-400">{{ ride.car }}</span> }
                         <span class="ml-auto flex flex-wrap items-center gap-1.5">

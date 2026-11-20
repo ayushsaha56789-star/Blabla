@@ -19,13 +19,15 @@ public final class UserDtos {
 	public record MeResponse(UUID id, String phone, String firstName, String lastName, String displayName,
 			String email, Gender gender, LocalDate dateOfBirth, String city, String bio, String avatarUrl,
 			ChatPreference prefChat, boolean prefMusic, boolean prefSmoking, boolean prefPets,
-			boolean phoneVerified, boolean idVerified, boolean betaTester, boolean profileComplete, Instant memberSince) {
+			boolean phoneVerified, boolean idVerified, boolean betaTester, boolean profileComplete, Instant memberSince,
+			boolean emailVerified) {
 	}
 
-	/** What other members can see. No phone number, email or exact birth date. */
+	/** What other members can see. No phone number, email or exact birth date. {@code rating}: null until reviewed. */
 	public record PublicProfileResponse(UUID id, String displayName, String avatarUrl, String bio, Integer age,
 			String city, ChatPreference prefChat, boolean prefMusic, boolean prefSmoking, boolean prefPets,
-			boolean phoneVerified, boolean idVerified, Instant memberSince) {
+			boolean phoneVerified, boolean idVerified, Instant memberSince, Double rating, int reviewCount,
+			boolean emailVerified) {
 	}
 
 	/** Letters in any script (so Devanagari, Tamil, … names work), spaces, dots, apostrophes, hyphens. Empty is left to @NotBlank. */

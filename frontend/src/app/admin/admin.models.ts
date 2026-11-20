@@ -1,6 +1,8 @@
 /** Shapes of the staff console API (backend: admin/AdminDtos.java and auth/Staff*.java). */
 import { Gender } from '../core/api.models';
 import { MemberCard, PassengerView, RideDetails, RideStatus } from '../core/rides.models';
+import { SupportCategory, SupportMessage } from '../core/support-api';
+import { DocumentType, RejectReason } from '../core/verification-api';
 
 export interface StaffStatus {
   staff: boolean;
@@ -93,14 +95,97 @@ export interface AdminRideRow {
   createdAt: string;
 }
 
+export interface ReportRow {
+  id: string;
+  status: 'OPEN' | 'ACTIONED' | 'DISMISSED';
+  targetType: 'MEMBER' | 'RIDE' | 'MESSAGE' | 'REVIEW';
+  targetId: string;
+  rideId: string | null;
+  reason: 'SAFETY' | 'HARASSMENT' | 'FAKE_PROFILE' | 'NO_SHOW' | 'SPAM' | 'INAPPROPRIATE' | 'OTHER';
+  details: string | null;
+  snapshot: string | null;
+  reporter: MemberCard;
+  reported: MemberCard;
+  reportsAboutMember: number;
+  createdAt: string;
+  acknowledgedAt: string | null;
+  acknowledgeBy: string;
+  resolveBy: string;
+  overdue: boolean;
+  resolvedAt: string | null;
+  handledBy: string | null;
+  resolution: string | null;
+}
+
+export interface SosRow {
+  id: string;
+  status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
+  member: MemberCard;
+  maskedPhone: string | null;
+  ride: { id: string; fromName: string; toName: string } | null;
+  lat: number | null;
+  lng: number | null;
+  accuracy: number | null;
+  near: string | null;
+  contactsNotified: number;
+  createdAt: string;
+  acknowledgedAt: string | null;
+  acknowledgedBy: string | null;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  notes: string | null;
+}
+
 export interface AdminRideDetails {
   ride: RideDetails;
   bookings: PassengerView[];
 }
 
+export interface StaffIdCheck {
+  id: string;
+  member: MemberCard;
+  fullName: string | null;
+  gender: Gender | null;
+  dateOfBirth: string | null;
+  age: number | null;
+  documentType: DocumentType;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  submittedAt: string;
+  decidedAt: string | null;
+  decidedBy: string | null;
+  rejectReason: RejectReason | null;
+  rejectNote: string | null;
+  photoAvailable: boolean;
+}
+
+export interface StaffTicketRow {
+  id: string;
+  member: MemberCard;
+  category: SupportCategory;
+  subject: string;
+  status: 'OPEN' | 'ANSWERED' | 'CLOSED';
+  createdAt: string;
+  updatedAt: string;
+  firstResponseAt: string | null;
+  respondBy: string;
+  overdue: boolean;
+}
+
+export interface StaffTicketView {
+  ticket: StaffTicketRow;
+  maskedPhone: string | null;
+  rideId: string | null;
+  messages: SupportMessage[];
+}
+
 export interface Dashboard {
   members: MemberStats;
   rides: RideStats;
+  openSosAlerts: number;
+  openReports: number;
+  overdueReports: number;
+  ticketsWaiting: number;
+  idChecksWaiting: number;
   staffCount: number;
   featuresOn: number;
   featuresTotal: number;

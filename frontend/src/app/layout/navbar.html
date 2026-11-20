@@ -59,11 +59,24 @@
       }
     </div>
 
+    @if (auth.isLoggedIn() && features.isOn('chat')) {
+      <a routerLink="/messages" routerLinkActive="!text-brand-700 dark:!text-brand-300 bg-brand-50 dark:bg-brand-500/10" class="btn btn-ghost btn-icon relative"
+         [attr.aria-label]="trips.unreadChats() ? 'Messages, ' + trips.unreadChats() + ' unread' : 'Messages'" title="Messages">
+        <app-icon name="chat" />
+        @if (trips.unreadChats()) {
+          <span class="absolute -top-0.5 -right-0.5 min-w-5 rounded-full bg-brand-600 px-1 text-center text-[0.7rem] leading-5 font-bold text-white ring-2 ring-white dark:ring-slate-950" aria-hidden="true">{{ trips.unreadChats() }}</span>
+        }
+      </a>
+    }
+
     @if (auth.user(); as user) {
       <div class="relative hidden lg:block">
         <button type="button" class="flex items-center gap-2 rounded-full p-1 pr-3 transition hover:bg-slate-100 focus-visible:ring-4 focus-visible:ring-brand-500/30 focus-visible:outline-none dark:hover:bg-slate-800"
                 (click)="toggle('account')" [attr.aria-expanded]="openMenu() === 'account'" aria-haspopup="menu">
-          <app-avatar [url]="user.avatarUrl" [name]="user.displayName" [size]="34" />
+          <span class="relative">
+            <app-avatar [url]="user.avatarUrl" [name]="user.displayName" [size]="34" />
+            @if (trips.supportReplies()) { <span class="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-brand-600 ring-2 ring-white dark:ring-slate-950" aria-hidden="true"></span> }
+          </span>
           <span class="max-w-32 truncate text-sm font-semibold">{{ user.firstName || 'Account' }}</span>
           <app-icon name="chevronDown" [size]="16" class="text-slate-400 transition" [class.rotate-180]="openMenu() === 'account'" />
         </button>
@@ -76,6 +89,13 @@
             <hr class="my-1 border-slate-100 dark:border-slate-800" />
             <a routerLink="/profile" class="btn btn-ghost btn-sm w-full justify-start" role="menuitem">
               <app-icon name="user" [size]="18" /> My profile
+            </a>
+            <a routerLink="/privacy-centre" class="btn btn-ghost btn-sm w-full justify-start" role="menuitem">
+              <app-icon name="lock" [size]="18" /> Privacy centre
+            </a>
+            <a routerLink="/help" class="btn btn-ghost btn-sm w-full justify-start" role="menuitem">
+              <app-icon name="help" [size]="18" /> Help
+              @if (trips.supportReplies()) { <span class="ml-auto rounded-full bg-brand-600 px-2 text-xs leading-5 font-bold text-white">{{ trips.supportReplies() }} new {{ trips.supportReplies() === 1 ? 'reply' : 'replies' }}</span> }
             </a>
             @if (auth.staff(); as staff) {
               <a routerLink="/admin" class="btn btn-ghost btn-sm w-full justify-start" role="menuitem">
@@ -95,7 +115,7 @@
     <button type="button" class="btn btn-ghost btn-icon relative lg:hidden" (click)="mobileOpen.set(!mobileOpen())"
             [attr.aria-expanded]="mobileOpen()" aria-controls="mobile-menu" [attr.aria-label]="mobileOpen() ? 'Close menu' : 'Open menu'">
       <app-icon [name]="mobileOpen() ? 'close' : 'menu'" />
-      @if (trips.pendingRequests() && !mobileOpen()) { <span class="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-accent-500 ring-2 ring-white dark:ring-slate-950" aria-hidden="true"></span> }
+      @if ((trips.pendingRequests() || trips.supportReplies()) && !mobileOpen()) { <span class="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-accent-500 ring-2 ring-white dark:ring-slate-950" aria-hidden="true"></span> }
     </button>
   </div>
 </nav>
@@ -124,9 +144,22 @@
         @if (trips.pendingRequests()) { <span class="ml-auto rounded-full bg-accent-500 px-2 text-xs leading-6 font-bold text-white">{{ trips.pendingRequests() }} waiting</span> }
       </a>
     }
+    @if (auth.isLoggedIn() && features.isOn('chat')) {
+      <a routerLink="/messages" class="btn btn-ghost w-full justify-start text-base">
+        <app-icon name="chat" /> Messages
+        @if (trips.unreadChats()) { <span class="ml-auto rounded-full bg-brand-600 px-2 text-xs leading-6 font-bold text-white">{{ trips.unreadChats() }} unread</span> }
+      </a>
+    }
     @for (p of extras(); track p.key) {
       <a [routerLink]="p.path" class="btn btn-ghost w-full justify-start text-base"><app-icon [name]="p.icon" /> {{ p.label }}</a>
     }
+    @if (auth.isLoggedIn()) {
+      <a routerLink="/privacy-centre" class="btn btn-ghost w-full justify-start text-base"><app-icon name="lock" /> Privacy centre</a>
+    }
+    <a routerLink="/help" class="btn btn-ghost w-full justify-start text-base">
+      <app-icon name="help" /> Help
+      @if (trips.supportReplies()) { <span class="ml-auto rounded-full bg-brand-600 px-2 text-xs leading-6 font-bold text-white">{{ trips.supportReplies() }} new {{ trips.supportReplies() === 1 ? 'reply' : 'replies' }}</span> }
+    </a>
     @if (auth.staff()) {
       <a routerLink="/admin" class="btn btn-ghost w-full justify-start text-base"><app-icon name="grid" /> Staff console</a>
     }

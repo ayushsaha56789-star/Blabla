@@ -8,9 +8,13 @@
         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
           @if (p.age) { {{ p.age }} years · }Member since {{ p.memberSince | date: 'MMMM y' }}
         </p>
+        @if (p.rating != null) {
+          <p class="mt-2 text-base"><app-stars [value]="p.rating" [count]="p.reviewCount" [showCount]="false" [size]="18" /><span class="ml-1.5 text-sm text-slate-500 dark:text-slate-400">· {{ p.reviewCount }} {{ p.reviewCount === 1 ? 'review' : 'reviews' }}</span></p>
+        }
         <div class="mt-3 flex flex-wrap justify-center gap-2">
           @if (p.phoneVerified) { <span class="badge badge-success"><app-icon name="checkCircle" [size]="14" /> Phone verified</span> }
           @if (p.idVerified) { <span class="badge badge-success"><app-icon name="shield" [size]="14" /> ID verified</span> }
+          @if (p.emailVerified) { <span class="badge badge-success"><app-icon name="mail" [size]="14" /> Email verified</span> }
         </div>
 
         @if (p.bio) {
@@ -30,9 +34,65 @@
 
         @if (auth.user()?.id === p.id) {
           <a routerLink="/profile" class="btn btn-secondary mt-8"><app-icon name="edit" [size]="18" /> Edit my profile</a>
+        } @else if (auth.isLoggedIn()) {
+          @if (confirmBlock()) {
+            <div class="mx-auto mt-8 max-w-md rounded-2xl border border-rose-200 p-4 text-left text-sm dark:border-rose-500/30" role="alertdialog" aria-labelledby="block-q">
+              <p id="block-q" class="font-semibold">Block {{ p.displayName }}?</p>
+              <p class="mt-1 text-slate-600 dark:text-slate-400">You won't see each other's rides, and neither of you can message or book the other. They won't be told.</p>
+              <div class="mt-3 flex justify-end gap-2">
+                <button type="button" class="btn btn-ghost btn-sm" (click)="confirmBlock.set(false)">Cancel</button>
+                <button type="button" class="btn btn-sm bg-rose-600 text-white hover:bg-rose-700" (click)="toggleBlock()" [disabled]="busy()">Block</button>
+              </div>
+            </div>
+          } @else {
+            <div class="mt-8 flex flex-wrap justify-center gap-2">
+              <button type="button" class="btn btn-ghost btn-sm" (click)="reporting.set({ type: 'MEMBER', id: p.id })"><app-icon name="flag" [size]="16" /> Report</button>
+              @if (blocked()) {
+                <button type="button" class="btn btn-ghost btn-sm" (click)="toggleBlock()" [disabled]="busy()">Unblock</button>
+              } @else {
+                <button type="button" class="btn btn-ghost btn-sm text-rose-600 dark:text-rose-400" (click)="confirmBlock.set(true)"><app-icon name="ban" [size]="16" /> Block</button>
+              }
+            </div>
+          }
         }
       </div>
     </article>
+    @if (reporting(); as rep) {
+      <app-report-dialog [targetType]="rep.type" [targetId]="rep.id" [name]="rep.type === 'MEMBER' ? p.displayName : null" (closed)="reporting.set(null)" />
+    }
+
+    @if (features.isOn('reviews')) {
+      <section class="card mt-5 p-6 sm:p-8" aria-labelledby="reviews-heading">
+        <h2 id="reviews-heading" class="text-lg font-bold">Reviews @if (reviewTotal()) { <span class="font-normal text-slate-500">({{ reviewTotal() }})</span> }</h2>
+        @if (reviews().length) {
+          <ul class="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
+            @for (r of reviews(); track r.id) {
+              <li class="py-4">
+                <div class="flex items-center gap-3">
+                  <a [routerLink]="['/u', r.author.id]"><app-avatar [url]="r.author.avatarUrl" [name]="r.author.displayName" [size]="36" /></a>
+                  <span class="min-w-0 flex-1">
+                    <span class="block text-sm font-semibold">{{ r.author.displayName }}</span>
+                    <span class="block text-xs text-slate-500 dark:text-slate-400">
+                      {{ r.subjectRole === 'DRIVER' ? 'Rode with ' + p.displayName : 'Drove ' + p.displayName }}@if (r.fromName) { · {{ r.fromName }} → {{ r.toName }}} · {{ r.createdAt | date: 'MMM y' }}
+                    </span>
+                  </span>
+                  <app-stars [value]="r.rating" [showCount]="false" />
+                </div>
+                @if (r.comment) { <p class="mt-2 text-slate-700 dark:text-slate-300">{{ r.comment }}</p> }
+                @if (auth.isLoggedIn() && auth.user()?.id !== r.author.id) {
+                  <button type="button" class="mt-1 text-xs text-slate-400 hover:text-slate-600 hover:underline dark:hover:text-slate-300" (click)="reporting.set({ type: 'REVIEW', id: r.id })">Report review</button>
+                }
+              </li>
+            }
+          </ul>
+          @if (reviews().length < reviewTotal()) {
+            <button type="button" class="btn btn-ghost btn-sm mt-2" (click)="moreReviews()" [disabled]="loadingMore()">Show more reviews</button>
+          }
+        } @else {
+          <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">No reviews yet. Reviews appear after shared trips.</p>
+        }
+      </section>
+    }
   } @else if (error()) {
     <div class="card p-10 text-center">
       <span class="text-5xl" aria-hidden="true">🧭</span>

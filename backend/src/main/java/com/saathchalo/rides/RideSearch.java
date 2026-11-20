@@ -12,6 +12,7 @@ import com.saathchalo.rides.internal.Booking;
 import com.saathchalo.rides.internal.BookingRepository;
 import com.saathchalo.rides.internal.Ride;
 import com.saathchalo.rides.internal.RideRepository;
+import com.saathchalo.user.BlockService;
 import com.saathchalo.user.MemberProfiles;
 import com.saathchalo.user.MemberProfiles.MemberCard;
 import com.saathchalo.user.MemberProfiles.Traveller;
@@ -26,6 +27,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Function;
@@ -81,13 +83,15 @@ public class RideSearch {
 
 	private final RideViews views;
 
+	private final BlockService blocks;
+
 	private final AppProperties.Rides config;
 
 	private final Clock clock;
 
 	public RideSearch(NamedParameterJdbcTemplate jdbc, RideRepository rides, BookingRepository bookings,
-			PlaceDirectory places, VehicleService vehicles, MemberProfiles members, RideViews views, AppProperties props,
-			Clock clock) {
+			PlaceDirectory places, VehicleService vehicles, MemberProfiles members, RideViews views, BlockService blocks,
+			AppProperties props, Clock clock) {
 		this.jdbc = jdbc;
 		this.rides = rides;
 		this.bookings = bookings;
@@ -95,6 +99,7 @@ public class RideSearch {
 		this.vehicles = vehicles;
 		this.members = members;
 		this.views = views;
+		this.blocks = blocks;
 		this.config = props.rides();
 		this.clock = clock;
 	}
@@ -151,11 +156,12 @@ public class RideSearch {
 		Map<UUID, MemberCard> drivers = members.cards(rideById.values().stream().map(Ride::getDriverId).toList());
 		Map<UUID, VehicleInfo> cars = vehicles.infos(rideById.values().stream().map(Ride::getVehicleId).toList());
 
+		Set<UUID> blocked = blocks.blockedEitherWay(viewerId);
 		List<SearchResult> results = new ArrayList<>();
 		Map<LocalDate, Integer> otherDays = new TreeMap<>();
 		for (Candidate c : candidates) {
 			Ride ride = rideById.get(c.rideId());
-			if (ride == null) {
+			if (ride == null || blocked.contains(ride.getDriverId())) {
 				continue;
 			}
 			boolean yours = ride.getDriverId().equals(viewerId);

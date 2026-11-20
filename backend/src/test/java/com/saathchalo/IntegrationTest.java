@@ -66,7 +66,7 @@ public abstract class IntegrationTest {
 	@BeforeEach
 	void cleanDatabase() {
 		// The audit log is append-only by design, so it is not cleaned between tests.
-		jdbc.execute("TRUNCATE users, otp_challenges, refresh_tokens CASCADE");
+		jdbc.execute("TRUNCATE users, otp_challenges, refresh_tokens, closed_accounts CASCADE");
 		jdbc.update("DELETE FROM feature_flags");
 		featureService.syncCatalog();
 	}

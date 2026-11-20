@@ -31,5 +31,8 @@ public interface RideRepository extends JpaRepository<Ride, UUID> {
 
 	long countByDriverIdAndStatusAndDepartureAtAfter(UUID driverId, RideStatus status, Instant after);
 
+	@EntityGraph(attributePaths = "stops")
+	List<Ride> findByDriverIdAndStatusAndDepartureAtAfter(UUID driverId, RideStatus status, Instant after);
+
 	long countByDriverIdAndStatus(UUID driverId, RideStatus status);
 }

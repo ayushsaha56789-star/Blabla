@@ -11,6 +11,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,14 +77,15 @@ public class MemberAccessService implements AccountStatusPort, AudienceProfilePr
 
 	private Snapshot load(UUID userId, Instant now) {
 		List<MemberRestriction> active = restrictions.findUnlifted(userId).stream().filter(r -> r.isActive(now)).toList();
+		Optional<User> user = users.findById(userId);
 		AccountStatus status = active.stream()
 			.filter(r -> r.getArea().equals(RestrictionArea.ALL.key()))
 			.max(Comparator.comparing(r -> r.getEndsAt() == null ? Instant.MAX : r.getEndsAt()))
-			.map(r -> new AccountStatus(true, r.getReason(), r.getEndsAt()))
-			.orElse(AccountStatus.ACTIVE);
+			.map(r -> new AccountStatus(true, r.getReason(), r.getEndsAt(), false))
+			.orElse(user.filter(User::isGone).isPresent() ? AccountStatus.CLOSING : AccountStatus.ACTIVE);
 		Set<String> areas = new LinkedHashSet<>();
 		active.forEach(r -> areas.add(r.getArea()));
-		AudienceProfile profile = users.findById(userId)
+		AudienceProfile profile = user
 			.map(u -> new AudienceProfile(u.getId(), u.getGender() == null ? null : u.getGender().name(), u.isIdVerified(),
 					u.isBetaTester(), u.getCity(), Set.copyOf(areas)))
 			.orElse(AudienceProfile.ANONYMOUS);

@@ -49,10 +49,11 @@ export class AuthService {
     return firstValueFrom(this.http.post<OtpRequestResponse>('/api/auth/otp/request', { phone }));
   }
 
-  async verifyOtp(phone: string, code: string): Promise<Me> {
+  /** {@code restored}: this login cancelled the member's request to delete their account. */
+  async verifyOtp(phone: string, code: string): Promise<{ me: Me; restored: boolean }> {
     const res = await firstValueFrom(this.http.post<AuthResponse>('/api/auth/otp/verify', { phone, code }));
     this.startSession(res);
-    return res.user;
+    return { me: res.user, restored: !!res.accountRestored };
   }
 
   /** Gets a fresh access token. Concurrent callers share one request. */

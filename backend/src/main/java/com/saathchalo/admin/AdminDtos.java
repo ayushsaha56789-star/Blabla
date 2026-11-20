@@ -29,7 +29,8 @@ public final class AdminDtos {
 	public record RoleResponse(String code, String name, String description, List<PermissionInfo> permissions) {
 	}
 
-	public record Dashboard(MemberStats members, RideStats rides, long staffCount, long featuresOn, long featuresTotal,
+	public record Dashboard(MemberStats members, RideStats rides, long openSosAlerts, long openReports,
+			long overdueReports, long ticketsWaiting, long idChecksWaiting, long staffCount, long featuresOn, long featuresTotal,
 			boolean maintenance, boolean signupsOpen, List<AuditEntryView> recentActivity) {
 	}
 

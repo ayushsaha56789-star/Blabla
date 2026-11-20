@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, nu
 import { Router, RouterLink } from '@angular/router';
 import { ApiProblem } from '../../core/api.models';
 import { AuthService } from '../../core/auth.service';
+import { ChatApi } from '../../core/chat-api';
 import { problemOf } from '../../core/errors';
 import { FeaturesService } from '../../core/features.service';
 import { bookingStatus, duration, rupees, seatsLeftFor, whatsappLink } from '../../core/rides-format';
@@ -13,6 +14,9 @@ import { TripsService } from '../../core/trips.service';
 import { Avatar } from '../../shared/avatar';
 import { Icon } from '../../shared/icon';
 import { PhonePipe } from '../../shared/phone.pipe';
+import { Stars } from '../../shared/stars';
+import { TripSafety } from './trip-safety';
+import { ReportDialog } from '../../shared/report-dialog';
 import { chatOption, preferenceBadges } from '../profile/prefs';
 
 const optionalNumber = (v: unknown) => (v == null || v === '' ? undefined : numberAttribute(v));
@@ -21,11 +25,12 @@ const optionalNumber = (v: unknown) => (v == null || v === '' ? undefined : numb
 @Component({
   selector: 'app-ride-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, Icon, Avatar, PhonePipe],
+  imports: [DatePipe, RouterLink, Icon, Avatar, PhonePipe, Stars, TripSafety, ReportDialog],
   templateUrl: './ride-page.html',
 })
 export class RidePage {
   private readonly api = inject(RidesApi);
+  private readonly chat = inject(ChatApi);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly toast = inject(ToastService);
@@ -49,6 +54,7 @@ export class RidePage {
   protected readonly confirmCancelBooking = signal(false);
   protected readonly cancellingRide = signal(false);
   protected readonly cancelReason = signal('');
+  protected readonly reporting = signal(false);
 
   protected readonly fmtRupees = rupees;
   protected readonly fmtDuration = duration;
@@ -148,6 +154,31 @@ export class RidePage {
     } catch (e) {
       this.toast.error(problemOf(e).detail);
       await this.load(r.id, false);
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  /** Opens the chat with the driver (asking a question before booking, or after). */
+  protected async messageDriver(): Promise<void> {
+    if (!this.auth.isLoggedIn()) {
+      void this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+      return;
+    }
+    await this.openChat(() => this.chat.open(this.id()));
+  }
+
+  protected async messagePassenger(p: PassengerView): Promise<void> {
+    if (p.member.id) await this.openChat(() => this.chat.open(this.id(), p.member.id!));
+  }
+
+  private async openChat(open: () => Promise<{ id: string }>): Promise<void> {
+    this.busy.set(true);
+    try {
+      const c = await open();
+      void this.router.navigate(['/messages', c.id]);
+    } catch (e) {
+      this.toast.error(problemOf(e).detail);
     } finally {
       this.busy.set(false);
     }

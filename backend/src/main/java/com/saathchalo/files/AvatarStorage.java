@@ -96,7 +96,8 @@ public class AvatarStorage {
 		});
 	}
 
-	private static BufferedImage readImage(InputStream in) throws IOException {
+	/** Decodes a JPG or PNG, refusing anything else and images that are too big or too small. */
+	static BufferedImage readImage(InputStream in) throws IOException {
 		try (ImageInputStream iis = ImageIO.createImageInputStream(in)) {
 			Iterator<ImageReader> readers = iis == null ? null : ImageIO.getImageReaders(iis);
 			if (readers == null || !readers.hasNext()) {
@@ -166,7 +167,7 @@ public class AvatarStorage {
 		Files.move(tmp, target);
 	}
 
-	private static ApiException unreadable() {
+	static ApiException unreadable() {
 		return ApiException.badRequest("unreadable_image", "We couldn't read that photo. Please try a different one.");
 	}
 }

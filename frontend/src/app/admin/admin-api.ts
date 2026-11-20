@@ -17,8 +17,13 @@ import {
   Restriction,
   RoleInfo,
   SetupComplete,
+  ReportRow,
+  SosRow,
   StaffRow,
   StaffStatus,
+  StaffIdCheck,
+  StaffTicketRow,
+  StaffTicketView,
   TotpSetup,
 } from './admin.models';
 
@@ -116,7 +121,49 @@ export class AdminApi {
   ride(id: string) {
     return firstValueFrom(this.http.get<AdminRideDetails>(`/api/admin/rides/${encodeURIComponent(id)}`));
   }
+  reports(open: boolean) {
+    return firstValueFrom(this.http.get<ReportRow[]>('/api/admin/reports', { params: new HttpParams().set('open', open) }));
+  }
+  acknowledgeReport(id: string) {
+    return firstValueFrom(this.http.post<ReportRow>(`/api/admin/reports/${encodeURIComponent(id)}/acknowledge`, null));
+  }
+  resolveReport(id: string, action: string, resolution: string) {
+    return firstValueFrom(this.http.post<ReportRow>(`/api/admin/reports/${encodeURIComponent(id)}/resolve`, { action, resolution }));
+  }
+  sosAlerts(open: boolean) {
+    return firstValueFrom(this.http.get<SosRow[]>('/api/admin/safety/sos', { params: new HttpParams().set('open', open) }));
+  }
+  acknowledgeSos(id: string) {
+    return firstValueFrom(this.http.post<SosRow>(`/api/admin/safety/sos/${encodeURIComponent(id)}/acknowledge`, null));
+  }
+  resolveSos(id: string, notes: string | null) {
+    return firstValueFrom(this.http.post<SosRow>(`/api/admin/safety/sos/${encodeURIComponent(id)}/resolve`, { notes }));
+  }
   cancelRide(id: string, reason: string) {
     return firstValueFrom(this.http.post<AdminRideDetails>(`/api/admin/rides/${encodeURIComponent(id)}/cancel`, { reason }));
+  }
+  verifications(status: 'PENDING' | 'APPROVED' | 'REJECTED') {
+    return firstValueFrom(this.http.get<StaffIdCheck[]>('/api/admin/verifications', { params: new HttpParams().set('status', status) }));
+  }
+  verificationPhoto(id: string) {
+    return firstValueFrom(this.http.get(`/api/admin/verifications/${encodeURIComponent(id)}/photo`, { responseType: 'blob' }));
+  }
+  approveVerification(id: string) {
+    return firstValueFrom(this.http.post<StaffIdCheck>(`/api/admin/verifications/${encodeURIComponent(id)}/approve`, null));
+  }
+  rejectVerification(id: string, reason: string, note: string | null) {
+    return firstValueFrom(this.http.post<StaffIdCheck>(`/api/admin/verifications/${encodeURIComponent(id)}/reject`, { reason, note }));
+  }
+  tickets(status: 'OPEN' | 'ANSWERED' | 'CLOSED' | 'ALL') {
+    return firstValueFrom(this.http.get<StaffTicketRow[]>('/api/admin/support/tickets', { params: new HttpParams().set('status', status) }));
+  }
+  ticket(id: string) {
+    return firstValueFrom(this.http.get<StaffTicketView>(`/api/admin/support/tickets/${encodeURIComponent(id)}`));
+  }
+  replyToTicket(id: string, body: string) {
+    return firstValueFrom(this.http.post<StaffTicketView>(`/api/admin/support/tickets/${encodeURIComponent(id)}/messages`, { body }));
+  }
+  closeTicket(id: string) {
+    return firstValueFrom(this.http.post<StaffTicketView>(`/api/admin/support/tickets/${encodeURIComponent(id)}/close`, null));
   }
 }

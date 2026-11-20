@@ -26,8 +26,8 @@ The full architecture, roadmap and the owner's decisions are in **`docs/ARCHITEC
 | 1 | Setup, phone-OTP login, profiles, home page, light/dark mode | Done |
 | 2 | Owner control centre: super admin, staff roles, 2FA, feature switches, audit log, member management | Done |
 | 3 | Carpooling: vehicles, place search, publish/search/book rides | Done |
-| 4 | Trust, safety, privacy: chat, reviews, verification, SOS, privacy centre, support | Next — needs the owner's "start" |
-| 5 | Payments and wallet (Razorpay) | Planned |
+| 4 | Trust, safety, privacy: chat, reviews, verification, SOS, privacy centre, support | Done |
+| 5 | Payments and wallet (Razorpay) | Next |
 | 6 | Car rentals: self-drive and with driver | Planned |
 | 7 | Driver partners: licensed drivers with service areas, hire a driver | Planned |
 | 8 | Games: chess and ludo, free | Planned |
@@ -41,16 +41,18 @@ The full architecture, roadmap and the owner's decisions are in **`docs/ARCHITEC
   - Run: `cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` (port 8080, Swagger at `/swagger-ui.html`).
   - Test: `cd backend && ./mvnw test`. Needs the `saathchalo_test` database from `scripts/setup-db.sql`. If the owner hasn't created it, start a private PostgreSQL in the scratchpad instead (`initdb`, then `pg_ctl` on port 5544 with `-c unix_socket_directories=''`), run tests with `TEST_DB_URL=jdbc:postgresql://localhost:5544/saathchalo_test`, and stop it afterwards.
   - Several Claude sessions may work here at once. Before starting a database or server, check the port (`ss -ltnp`); if 5544, 8080 or 4200 is taken, use another (e.g. 5545, `--server.port=8081`, `ng serve --port 4201` with a proxy file in the scratchpad). Never stop a process another session started.
+  - A backend started with `spring-boot:run` (devtools) restarts whenever `backend/target/classes` changes, so another session's `./mvnw test` reloads it with half-finished code and runs new migrations on its database. While migrations are still changing, build and test in a copy (`rsync -a --exclude target backend/ <scratchpad>/backend-build/`).
 - **Frontend** `frontend/`: Angular 22 (standalone, zoneless, signals), Tailwind CSS 4, Angular CDK, Vitest.
   - Node 24 is installed at `~/.local/share/node-v24.22.3/bin` and is not on Claude's PATH: start shell commands with `export PATH="$HOME/.local/share/node-v24.22.3/bin:$PATH"`.
   - Run: `npm start` (port 4200, proxies `/api` to 8080). Test: `npm test -- --watch=false`. Build: `npx ng build`.
 
 ## Conventions
 
-- Backend is package-by-feature under `com.saathchalo` (`auth`, `user`, `access`, `features`, `audit`, `admin`, `geo`, `vehicles`, `rides`, `files`, `config`, `common`); Spring Modulith's test fails the build if a module reaches into another module's `internal` package. Controllers stay thin; services hold the logic and transactions; request/response types are records in `*Dtos.java`.
+- Backend is package-by-feature under `com.saathchalo` (`auth`, `user`, `access`, `features`, `audit`, `admin`, `geo`, `vehicles`, `rides`, `chat`, `reviews`, `safety`, `moderation`, `support`, `privacy`, `verification`, `files`, `config`, `common`); Spring Modulith's test fails the build if a module reaches into another module's `internal` package. Controllers stay thin; services hold the logic and transactions; request/response types are records in `*Dtos.java`.
 - Errors: throw `ApiException` with a stable `code` and a friendly message; the API answers with RFC 9457 problem details.
 - Spring Boot 4 uses Jackson 3: optional true/false fields in request records must be `Boolean`, not `boolean`, or a missing field fails the whole request.
 - Database changes only through a **new** Flyway migration `V<n>__description.sql`. Never edit one that has already run.
+- Every module that stores data about members implements `common.PersonalData` (`export` for "Download my data", `erase` for account deletion).
 - Frontend: state in signals (the app is zoneless, so plain fields don't re-render), `OnPush` components, lazy-loaded routes, API calls in `core/*-api.ts`, errors shown through `problemOf()`. Styling uses Tailwind classes plus the shared classes in `src/styles.css` (`.btn`, `.card`, `.input`, `.chip`, `.segmented`, `.switch`, `.data-table`, `.role-*`). Icons come from `app-icon`. Every page must work in the white and the black theme and on phones.
 - **New features plug into the control centre:** add a switch to `FeatureCatalog` (backend), mark the APIs `@RequiresFeature("key")`, gate menus/routes with `FeaturesService.isOn()` / `featureGuard()`. Staff APIs go under `/api/admin/**` with `@PreAuthorize(Perm.X)`; sensitive ones also get `@RequiresConfirmation` (fresh 2FA code). Services record sensitive actions with `AuditService.record(...)`.
 - Staff console tokens live only in memory: a full page reload asks for the 2FA code again (by design). In browser tests, navigate the console with the sidebar instead of reloading.

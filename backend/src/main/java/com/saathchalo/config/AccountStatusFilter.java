@@ -41,6 +41,13 @@ class AccountStatusFilter extends OncePerRequestFilter {
 		Optional<UUID> userId = CurrentUser.id();
 		if (userId.isPresent()) {
 			AccountStatus status = accounts.statusOf(userId.get());
+			if (status.closing()) {
+				// Tokens issued before the member asked to delete their account stop working straight away.
+				ProblemResponses.write(response, json, HttpStatus.UNAUTHORIZED, "session_ended",
+						"You've been logged out because this account is being deleted. Log in again if you change your mind.",
+						Map.of());
+				return;
+			}
 			if (status.suspended()) {
 				Map<String, Object> extra = new HashMap<>();
 				extra.put("reason", status.reason());

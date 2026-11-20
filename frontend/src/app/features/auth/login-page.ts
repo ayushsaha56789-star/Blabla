@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, inp
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { problemOf } from '../../core/errors';
+import { ToastService } from '../../core/toast.service';
 import { formatIndianMobile, isValidIndianMobile, safeReturnUrl } from '../../core/util';
 import { Icon } from '../../shared/icon';
 import { Logo } from '../../shared/logo';
@@ -15,6 +16,7 @@ import { OtpInput } from '../../shared/otp-input';
 })
 export class LoginPage {
   private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
 
   /** Where to go after logging in (from ?returnUrl=…). */
@@ -72,7 +74,8 @@ export class LoginPage {
     this.busy.set(true);
     this.error.set(null);
     try {
-      const me = await this.auth.verifyOtp(this.phone(), this.code());
+      const { me, restored } = await this.auth.verifyOtp(this.phone(), this.code());
+      if (restored) this.toast.success('Welcome back! We have cancelled the deletion of your account.');
       const target = safeReturnUrl(this.returnUrl());
       if (me.profileComplete) {
         await this.router.navigateByUrl(target);

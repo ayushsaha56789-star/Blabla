@@ -50,6 +50,9 @@ export interface MemberCard {
   phoneVerified: boolean;
   idVerified: boolean;
   memberSince: string | null;
+  /** Average stars from trip reviews; null until someone reviews them. */
+  rating: number | null;
+  reviewCount: number;
 }
 
 export interface StopView {

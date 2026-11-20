@@ -73,6 +73,11 @@
         </p>
       </section>
 
+      @if ((r.viewer === 'DRIVER' || r.myBooking?.status === 'CONFIRMED') && r.status === 'SCHEDULED' && (features.isOn('safety.sos') || features.isOn('safety.trip_share'))) {
+        <app-trip-safety class="lg:col-start-1" [rideId]="r.id" [departureAt]="r.departureAt" [arrivalAt]="r.arrivalAt"
+                         [routeLabel]="'from ' + r.stops[0].name + ' to ' + r.stops[last()].name" />
+      }
+
       <!-- Booking panel / driver panel -->
       <aside id="book" class="lg:sticky lg:top-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start" aria-label="Booking">
         <div class="card p-5 sm:p-6">
@@ -213,6 +218,7 @@
                 @if (r.driver.profile.idVerified) { <app-icon name="shield" [size]="18" class="text-brand-600" /> }
               </span>
               <span class="block text-sm text-slate-500 dark:text-slate-400">
+                @if (r.driver.profile.rating != null) { <app-stars class="text-slate-800 dark:text-slate-200" [value]="r.driver.profile.rating" [count]="r.driver.profile.reviewCount" /> · }
                 @if (r.driver.profile.age) { {{ r.driver.profile.age }} y/o · }
                 @if (r.driver.ridesCompleted > 0) { {{ r.driver.ridesCompleted }} {{ r.driver.ridesCompleted === 1 ? 'ride' : 'rides' }} driven } @else { New driver }
                 · member since {{ r.driver.profile.memberSince | date: 'MMM y' }}
@@ -228,6 +234,11 @@
             }
             @if (r.driver.profile.phoneVerified) { <span class="chip pointer-events-none py-1.5"><app-icon name="checkCircle" [size]="15" class="text-brand-600" /> Phone verified</span> }
           </div>
+          @if (r.viewer !== 'DRIVER' && r.viewer !== 'STAFF' && features.isOn('chat') && (r.status === 'SCHEDULED' || r.viewer === 'PASSENGER')) {
+            <button type="button" class="btn btn-secondary mt-4 w-full sm:w-auto" (click)="messageDriver()" [disabled]="busy()">
+              <app-icon name="chat" [size]="18" /> {{ r.viewer === 'PASSENGER' ? 'Message' : 'Ask' }} {{ r.driver.profile.displayName }}
+            </button>
+          }
           @if (r.car; as car) {
             <div class="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
               <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"><app-icon name="car" [size]="20" /></span>
@@ -237,6 +248,12 @@
               </span>
               @if (car.plate) { <span class="ml-auto rounded-lg border-2 border-slate-900 bg-white px-2 py-0.5 font-mono text-sm font-bold tracking-wider text-slate-900 dark:border-slate-200">{{ car.plate }}</span> }
             </div>
+          }
+          @if (auth.isLoggedIn() && r.viewer !== 'DRIVER' && r.viewer !== 'STAFF') {
+            <button type="button" class="mt-4 block text-xs text-slate-400 hover:text-slate-600 hover:underline dark:hover:text-slate-300" (click)="reporting.set(true)">Report this ride</button>
+          }
+          @if (reporting()) {
+            <app-report-dialog targetType="RIDE" [targetId]="r.id" [name]="null" (closed)="reporting.set(false)" />
           }
           @if (r.notes) {
             <blockquote class="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
@@ -259,6 +276,11 @@
                     </span>
                   </div>
                   @if (p.message) { <p class="mt-3 rounded-xl bg-white p-3 text-sm dark:bg-slate-900">“{{ p.message }}”</p> }
+                  @if (features.isOn('chat')) {
+                    <button type="button" class="btn btn-ghost btn-sm mt-2 -ml-2" (click)="messagePassenger(p)" [disabled]="busy()">
+                      <app-icon name="chat" [size]="16" /> Message {{ p.member.displayName }}
+                    </button>
+                  }
                   <div class="mt-3 grid grid-cols-2 gap-2">
                     <button type="button" class="btn btn-secondary" (click)="answer(p, false)" [disabled]="busy()">Decline</button>
                     <button type="button" class="btn btn-primary" (click)="answer(p, true)" [disabled]="busy()"><app-icon name="check" [size]="18" /> Accept</button>
@@ -280,12 +302,15 @@
                     <span class="block font-semibold">{{ p.member.displayName }} @if (p.seats > 1) { <span class="font-normal text-slate-500">+{{ p.seats - 1 }}</span> }</span>
                     <span class="block text-sm text-slate-500 dark:text-slate-400">{{ passengerStretch(p) }}</span>
                   </span>
-                  @if (p.phone) {
-                    <span class="flex gap-2">
+                  <span class="flex flex-wrap gap-2">
+                    @if (r.viewer === 'DRIVER' && features.isOn('chat')) {
+                      <button type="button" class="btn btn-secondary btn-sm" (click)="messagePassenger(p)" [disabled]="busy()" [attr.aria-label]="'Message ' + p.member.displayName"><app-icon name="chat" [size]="16" /> Message</button>
+                    }
+                    @if (p.phone) {
                       <a class="btn btn-secondary btn-sm" [href]="'tel:' + p.phone" [attr.aria-label]="'Call ' + p.member.displayName"><app-icon name="phone" [size]="16" /> {{ p.phone | phone }}</a>
-                      <a class="btn btn-secondary btn-sm" [href]="waLink(p.phone)" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'WhatsApp ' + p.member.displayName"><app-icon name="chat" [size]="16" /></a>
-                    </span>
-                  }
+                      <a class="btn btn-secondary btn-sm" [href]="waLink(p.phone)" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'WhatsApp ' + p.member.displayName">WhatsApp</a>
+                    }
+                  </span>
                 </li>
               }
             </ul>

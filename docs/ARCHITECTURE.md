@@ -77,9 +77,9 @@ Modules talk to each other only through each module's public service classes and
 | `access` | Roles, permissions, staff accounts | 2 |
 | `features` | Feature switches and who they apply to | 2 |
 | `audit` | Tamper-evident log of sensitive actions | 2 |
-| `privacy` | Consents, data download, account deletion, retention clean-up | 4 |
-| `files` | Storage, image processing, document encryption | 1 ✓, 4 |
-| `notifications` | In-app inbox, browser push, SMS, email, member preferences | 4, 11 |
+| `privacy` | Data download, account deletion, legal contacts (consent records later) | 4 ✓ |
+| `files` | Storage, image processing, document encryption | 1 ✓, 4 ✓ |
+| `notifications` | In-app inbox, browser push, SMS, email, member preferences | 11 (Phase 4 has badges and SMS for SOS) |
 | `payments` | Razorpay orders, webhooks, refunds, payouts, ledger, credits | 5 |
 | `geo` | Place search and routes (OpenStreetMap), PostGIS helpers | 3 |
 
@@ -88,14 +88,15 @@ Modules talk to each other only through each module's public service classes and
 | Module | Job | Phase |
 |---|---|---|
 | `user` | Profiles and preferences | 1 ✓ |
-| `verification` | ID, driving licence and vehicle document checks | 4 |
+| `verification` | Email codes and ID checks (driving licence and vehicle papers in Phases 6–7) | 4 ✓ |
 | `vehicles` | Cars registered by members, for carpooling and rentals | 3 |
 | `rides` | Publish and search rides | 3 |
 | `bookings` | Seat requests, confirmations, cancellations | 3 |
-| `chat` | Messages between members of a ride or rental | 4 |
-| `reviews` | Ratings after completed trips | 4 |
-| `safety` | SOS, trip sharing, reports, blocking | 4 |
-| `support` | Help tickets and the grievance officer workflow | 4 |
+| `chat` | Messages between members of a ride or rental | 4 ✓ |
+| `reviews` | Ratings after completed trips | 4 ✓ |
+| `safety` | Emergency contacts, SOS, trip sharing | 4 ✓ |
+| `moderation` | Reports and the moderation queue (blocking lives in `user`) | 4 ✓ |
+| `support` | Help requests and the grievance workflow | 4 ✓ |
 | `rentals` | Rental listings (self-drive or with driver), calendar, bookings, deposits, pickup/return checks, disputes | 6 |
 | `drivers` | Driver partners: licence check, service areas, availability, rates, hire-a-driver bookings | 7 |
 | `games` | Chess, ludo, rooms, matchmaking, ratings, leaderboards | 8 |
@@ -105,6 +106,8 @@ Modules talk to each other only through each module's public service classes and
 | `admin` | Admin APIs; they call the other modules' public services | 2 onwards |
 
 Rules: each module owns its tables. Other modules refer to that data by ID only and never read those tables directly. A Spring Modulith test fails the build if one module reaches into another module's internals.
+
+**Personal data.** Every module that stores data about members implements `common.PersonalData`: `export` (its part of "Download my data") and `erase` (what happens when an account is erased). The privacy module collects them all, so a new module is covered by adding one small class.
 
 ## 5. Super admin, staff and permissions
 
@@ -182,7 +185,7 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
 **How switches are enforced**
 
 - **Server.** Every API of a feature is marked, for example `@RequiresFeature("games.chess")`. If the switch is off for that member, the API answers "not available". The server never relies on the website to hide things.
-- **Website.** `GET /api/features` returns the switches that are on for the current member, and menus, pages and buttons appear only for those. When the owner flips a switch, open browsers update within seconds. Live updates arrive with WebSocket in Phase 4; until then, on the next page load or within a minute.
+- **Website.** `GET /api/features` returns the switches that are on for the current member, and menus, pages and buttons appear only for those. When the owner flips a switch, open browsers pick it up on the next page load or within a minute. Live updates over WebSocket come with games (Phase 8).
 
 ## 7. Feature designs
 
@@ -194,8 +197,8 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
 - **Price cap.** Suggested ₹2/km, never above ₹3.5/km (minimum ₹20), so rides stay cost-sharing rather than a taxi business. Part of a route costs its share of the distance, rounded to ₹10. All of this is in `app.rides.*` settings.
 - **Search.** A ride matches when one of its stops is within 30 km of where the passenger starts and a later stop is within 30 km of where they are going (PostGIS on the stops), on the chosen day. When that day is empty, nearby days with rides are suggested. Shared links can use names: `/search?from=Delhi&to=Jaipur`.
 - **Seats** are counted per stretch, so a seat freed at a stop can be sold again for the rest of the trip. Every booking change locks the ride row, so two people can never get the last seat. A request holds its seats until the driver answers; unanswered requests expire after 12 hours or at pickup time.
-- **Contact.** Phone numbers (with Call and WhatsApp buttons) are shown only between the driver and passengers with a confirmed seat, while the ride is upcoming. In-app chat comes in Phase 4.
-- **Ladies-only rides** are offered by women and shown only to women (switch `rides.ladies_only`). Phase 4 adds ID verification as a requirement.
+- **Contact.** Phone numbers (with Call and WhatsApp buttons) are shown only between the driver and passengers with a confirmed seat, while the ride is upcoming. Before that, members use in-app chat (Phase 4).
+- **Ladies-only rides** are offered by women and shown only to women (switch `rides.ladies_only`). Requiring an ID check for them is an option for the owner to decide (the ID check exists since Phase 4).
 - **Staff** see every ride in the console (Rides page and dashboard numbers) and can cancel one with a reason and a fresh 2FA code; it is recorded in the audit log.
 
 ```
@@ -206,14 +209,16 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
  (Instant booking goes straight to CONFIRMED.)
 ```
 
-### 7.2 Trust and safety (Phase 4)
+### 7.2 Trust and safety (Phase 4, built)
 
-- Verification levels: phone ✓ → email → ID (DigiLocker or a KYC provider; **Aadhaar numbers are never stored**) → driving licence (drivers and renters) → vehicle papers.
-- Ladies-only rides need an ID-verified woman, so the option can't be misused.
-- Reviews only after a completed trip, from both sides.
-- **SOS button** during a trip: shares the live location with chosen emergency contacts, alerts support, and offers a one-tap call to 112.
-- **Trip sharing:** a time-limited link that family can open to follow the trip.
-- Report and block from anywhere (profiles, chats, games, promotions). Reports go to a moderation queue in the console.
+- **Chat** between the driver and each passenger of a ride, without sharing phone numbers. A passenger can ask before booking while the ride is upcoming; a driver can write to anyone who booked. Limits: 20 new chats a day, 60 messages an hour. Chats close a week after the trip, are deleted after 6 months, and blocked members can't write to each other. The website checks for new messages every few seconds while a chat is open (WebSocket later).
+- **Reviews** only after a completed trip, from both sides, within 14 days, once per person per trip. Ratings show on profiles, ride pages and search results.
+- **Safety:** up to 3 emergency contacts (numbers encrypted). **Share my trip** gives a private link (random token, only its hash stored) showing the route, driver and car, and live location if the member allows; it stops a day after the trip and never shows phone numbers. **SOS** offers a call to 112, alerts staff (red banner on the console dashboard) and texts the emergency contacts the trip link; the alert falls back to the last shared location when the phone can't give one.
+- **Reports and blocks** from profiles, chats, reviews and rides. A report keeps a copy of the reported message or review. Staff acknowledge within 24 hours and resolve within 15 days (IT Rules 2021); removing content hides it everywhere and closes all reports about it. Blocking stops chats and bookings both ways.
+- **Help centre:** answers to common questions and help requests answered in the console (first reply due within 24 hours, overdue ones flagged). Members see "new reply"; answered requests close after a quiet week; writing again reopens them.
+- **Privacy centre:** what others see, **Download my data** (one JSON file from every module, see section 4), the blocked list and **Delete my account**. Deleting refuses while others count on the member (confirmed trips), cancels their empty rides, logs them out everywhere, and erases the account after 30 days unless they log in again. Erasure anonymises the profile (rides stay in other members' history as "Former member") and seals the sign-up details, encrypted, for 180 days (IT Rules 2021, rule 3(1)(h)), then deletes them.
+- **Verification:** phone ✓ → email (6-digit code, stored only as a keyed hash) → ID. For the ID check the member uploads a photo of a driving licence, PAN, passport, voter ID or masked Aadhaar; the server re-encodes it (removing hidden location data) and stores it encrypted. Staff compare it with the profile in the console; every photo view is audited. Photos are deleted 30 days after the decision, and at once if a full Aadhaar number is visible. DigiLocker or a KYC provider can replace the manual check later.
+- **Policies:** terms, privacy policy, community guidelines and grievance officer pages in plain English, marked as drafts until a lawyer reviews them. Grievance contact details come from settings (`LEGAL_*`, `GRIEVANCE_*`).
 
 ### 7.3 Payments and wallet (Phase 5)
 
@@ -297,7 +302,8 @@ Anti-abuse: XP and referral rewards are given only for completed trips that both
 
 ### 7.9 Notifications (Phases 4 and 11)
 
-- An in-app inbox for everything; browser push notifications for bookings, chats and game turns; SMS only for login codes and SOS; email for receipts.
+- Phase 4: badges in the menu (requests waiting, unread chats, new help replies), SMS for SOS, and email codes (development senders write to the log).
+- Phase 11: an in-app inbox for everything; browser push notifications for bookings, chats and game turns; SMS only for login codes and SOS; email for receipts.
 - Members choose which kinds they receive. Marketing messages are sent only with consent.
 
 ## 8. Security architecture
@@ -349,12 +355,15 @@ The table is the reference for that later work.
 |---|---|---|
 | Login codes | 1 day | Deleted |
 | Sessions | Until expiry + 7 days | Deleted |
-| Chats | 6 months after the trip (longer if reported) | Deleted |
-| Live location (SOS, trip sharing) | 24 hours after the trip | Deleted |
-| ID and licence images | 30 days after the check | Deleted; the result and a masked number are kept |
+| Email codes | 15 minutes (rows removed after a day) | Deleted |
+| Chats | 6 months after the trip (a reported message is copied into the report) | Deleted |
+| Live location from trip sharing | Until the link ends, a day after the trip | Deleted |
+| SOS locations | 90 days | Cleared; the alert record stays |
+| ID images | 30 days after the decision (at once if a full Aadhaar number shows) | Deleted; the decision is kept |
+| Help requests | Until the account is erased | Deleted |
 | Security logs | At least 1 year | Deleted |
 | Payments and invoices | As tax law requires (about 8 years) | Archived |
-| Deleted accounts | 30-day grace period | Personal data erased or anonymised |
+| Deleted accounts | 30-day grace period (logging in cancels) | Personal data erased or anonymised; sign-up details sealed for 180 days, then deleted |
 
 Backups: daily encrypted database backups plus point-in-time recovery in production, kept for 30 days, with a restore test every month.
 
@@ -406,7 +415,7 @@ frontend/src/app/
 | 1 ✓ | Setup, phone login, profiles, home page | Done |
 | 2 ✓ | **Owner control centre**: super admin, staff roles, 2FA, feature switches, audit log, member management | Done |
 | 3 ✓ | **Carpooling**: vehicles, place search, publish/search/book rides, price cap | Done |
-| 4 | **Trust, safety and privacy**: chat, reviews, verification, SOS, trip sharing, reports, privacy centre, legal pages, help tickets | 4–5 |
+| 4 ✓ | **Trust, safety and privacy**: chat, reviews, verification, SOS, trip sharing, reports, privacy centre, legal pages, help tickets | Done |
 | 5 | **Payments and wallet**: Razorpay, refunds, ledger, credits, payouts | 3 |
 | 6 | **Car rentals**: self-drive and with driver | 5–6 |
 | 7 | **Driver partners**: licensed drivers register with their service areas; members hire a driver for their own car or a rental | 3–4 |
@@ -461,3 +470,4 @@ Phase 2 is kept lean (3 sessions) so that carpooling, the part members feel, com
 | Drivers | Licensed drivers can register with the areas they serve (section 7.5) |
 | Promotions | Paid and reviewed before going live; free for the first month after launch |
 | Gen-Z features | All of section 7.7 |
+| Phase 4 defaults | ID check by staff (no paid KYC yet; DigiLocker later); SMS and email only logged in development; chats kept 6 months; new features switched on by default |

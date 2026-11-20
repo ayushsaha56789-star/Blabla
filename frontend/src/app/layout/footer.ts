@@ -9,8 +9,8 @@ import { Logo } from '../shared/logo';
   imports: [RouterLink, Logo],
   host: { class: 'block border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950' },
   template: `
-    <div class="container-page grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4">
-      <div class="lg:col-span-2">
+    <div class="container-page grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-5">
+      <div class="sm:col-span-2">
         <app-logo [size]="30" />
         <p class="mt-3 max-w-sm text-sm text-slate-500 dark:text-slate-400">
           Share rides between cities with verified people. Split the cost, make the trip more fun,
@@ -36,6 +36,17 @@ import { Logo } from '../shared/logo';
               </a>
             </li>
           }
+        </ul>
+      </div>
+      <div>
+        <h2 class="text-sm font-bold">Help and legal</h2>
+        <ul class="mt-3 space-y-2 text-sm text-slate-500 dark:text-slate-400">
+          <li><a routerLink="/help" class="hover:text-brand-600 dark:hover:text-brand-400">Help centre</a></li>
+          <li><a routerLink="/privacy-centre" class="hover:text-brand-600 dark:hover:text-brand-400">Privacy centre</a></li>
+          <li><a routerLink="/legal/community" class="hover:text-brand-600 dark:hover:text-brand-400">Community guidelines</a></li>
+          <li><a routerLink="/legal/terms" class="hover:text-brand-600 dark:hover:text-brand-400">Terms of use</a></li>
+          <li><a routerLink="/legal/privacy" class="hover:text-brand-600 dark:hover:text-brand-400">Privacy policy</a></li>
+          <li><a routerLink="/legal/grievance" class="hover:text-brand-600 dark:hover:text-brand-400">Grievance officer</a></li>
         </ul>
       </div>
     </div>
