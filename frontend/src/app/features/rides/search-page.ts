@@ -7,6 +7,7 @@ import { FeaturesService } from '../../core/features.service';
 import { addDays, dayOf, duration, rupees } from '../../core/rides-format';
 import { SearchResponse, SearchResult } from '../../core/rides.models';
 import { RidesApi } from '../../core/rides-api';
+import { SocialApi } from '../../core/social-api';
 import { todayIso } from '../../core/util';
 import { Avatar } from '../../shared/avatar';
 import { Icon } from '../../shared/icon';
@@ -137,6 +138,9 @@ const optionalNumber = (v: unknown) => (v == null || v === '' ? undefined : numb
                           <span class="truncate text-sm font-semibold">{{ ride.driver.displayName }}</span>
                           @if (ride.driver.idVerified) { <app-icon name="shield" [size]="15" class="text-brand-600" /> }
                           <app-stars class="text-sm" [value]="ride.driver.rating" [count]="ride.driver.reviewCount" />
+                          @if (vibe()[ride.driver.id ?? '']; as v) {
+                            <span class="badge" [class]="v >= 70 ? 'tone-success' : 'tone-muted'" [attr.title]="'Vibe match from travel preferences and interests'">✨ {{ v }}% vibe</span>
+                          }
                         </span>
                         @if (ride.car) { <span class="text-sm text-slate-500 dark:text-slate-400">{{ ride.car }}</span> }
                         <span class="ml-auto flex flex-wrap items-center gap-1.5">
@@ -211,6 +215,8 @@ export class SearchPage {
     { key: 'near', label: 'Closest', icon: 'pin' },
   ];
   protected readonly result = signal<SearchResponse | null>(null);
+  protected readonly vibe = signal<Record<string, number>>({});
+  private readonly social = inject(SocialApi);
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly sort = signal<Sort>('time');
@@ -272,13 +278,26 @@ export class SearchPage {
     return Math.round((Date.parse(b) - Date.parse(a)) / 60_000);
   }
 
+  /** Vibe scores with the drivers in the results, when vibe match is on. */
+  private async loadVibe(driverIds: string[]): Promise<void> {
+    if (!this.features.isOn('vibe_match') || !this.auth.isLoggedIn()) return;
+    try {
+      this.vibe.set(await this.social.vibeScores([...new Set(driverIds)]));
+    } catch {
+      this.vibe.set({});
+    }
+  }
+
   private async load(query: Parameters<RidesApi['search']>[0]): Promise<void> {
     const no = ++this.requestNo;
     this.loading.set(true);
     this.error.set(null);
     try {
       const r = await this.api.search(query);
-      if (no === this.requestNo) this.result.set(r);
+      if (no === this.requestNo) {
+        this.result.set(r);
+        void this.loadVibe(r.rides.map((x) => x.driver.id).filter((id): id is string => !!id));
+      }
     } catch (e) {
       if (no === this.requestNo) {
         this.result.set(null);

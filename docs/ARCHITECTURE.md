@@ -100,8 +100,8 @@ Modules talk to each other only through each module's public service classes and
 | `rentals` | Rental listings (self-drive or with driver), calendar, bookings, deposits, pickup/return checks, disputes | 6 ✓ |
 | `drivers` | Driver partners: licence check, service areas, availability, rates, hire-a-driver bookings | 7 ✓ |
 | `games` | Chess, ludo, rooms, matchmaking, ratings, leaderboards | 8 ✓ |
-| `rewards` | XP, levels, badges, streaks, challenges, referrals | 9 |
-| `community` | Squads (college, office and friend groups), event rides | 9 |
+| `rewards` | XP, levels, badges, streaks, challenges, referrals | 9 ✓ |
+| `community` | Squads (college, office and friend groups), event rides, vibe match | 9 ✓ |
 | `promotions` | Business profiles, sponsored posts, review, billing, statistics | 10 |
 | `admin` | Admin APIs; they call the other modules' public services | 2 onwards |
 
@@ -180,7 +180,7 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
 | Trust | `chat`, `reviews`, `safety.sos`, `safety.trip_share` |
 | Rentals and drivers | `rentals`, `rentals.self_drive`, `rentals.with_driver`, `rentals.instant_book`, `rentals.unverified`, `drivers`, `drivers.register`, `drivers.hire` |
 | Games | `games`, `games.chess`, `games.ludo`, `games.vs_computer`, `games.online`, `games.ride_lobby`, `games.leaderboards` |
-| Social | `rewards`, `rewards.referrals`, `community.squads`, `community.events`, `vibe_match` |
+| Social | `rewards`, `rewards.referrals`, `community`, `community.squads`, `community.events`, `vibe_match` |
 | Promotions | `promotions`, `promotions.self_serve`, `promotions.in_search`, `promotions.in_games`, plus the setting "free promotions until" for the launch offer |
 
 **How switches are enforced**
@@ -283,20 +283,20 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
 - Ratings (Elo, starting at 1200) and the leaderboard count online games between people only (no computer players). In-game chat is emojis and set phrases only, kept a week.
 - Original board, pieces and colours (Unicode chess symbols; a ludo board drawn in CSS). Nothing is copied from existing game apps.
 
-### 7.7 Rewards and social: the Gen-Z layer (Phase 9)
+### 7.7 Rewards and social: the Gen-Z layer (Phase 9, built)
 
-| Feature | What it does |
+| Feature | What it does (as built) |
 |---|---|
-| XP, levels, badges | XP for rides, reviews and streaks; badges such as "Eco Hero", "Night Owl", "Road Tripper" |
-| Streaks and challenges | Weekly goals, such as "3 shared rides this month" |
-| CO₂ and money saved | Personal dashboard plus a shareable story card (an Instagram-ready image) |
-| Referrals | Invite friends; both get ride credits after the friend's first completed ride |
-| Squads | Private groups for a college, office or friend circle, verified by email domain; rides visible only inside the squad |
-| Event rides | Pages for concerts, fests and matches, listing every ride going there |
-| Vibe match | A match score from music taste, chattiness and interests, shown on ride cards |
-| Leaderboards | City-wise eco champions and game ratings (opt-in, nickname only) |
+| XP, levels, badges | Worked out on demand from completed trips (`rides.RideLookup.sharedTrips`), never stored: 50 XP a trip, +20 driving, +5 per person met, +100 per monthly challenge and per rewarded invite. Ten levels, ten badges (First ride, Regular, Captain, Eco hero, Road tripper, Night owl, Early bird, Social butterfly, On a roll, Ambassador) with progress |
+| Streaks and challenges | Weeks in a row with a shared ride (India time; this week counts once it has a ride); a monthly "3 shared rides" challenge |
+| CO₂ and money | CO₂ saved = passenger-km × 0.12 kg (each shared passenger-km is a car-km not driven); km, people met and costs shared; a 1080 × 1350 card drawn in the browser and shared through the phone's share sheet |
+| Referrals | An invite code per member, usable in a new member's first two weeks. When the friend completes a ride with someone other than the inviter, both get ₹50 credits (`app.rewards.referral-credit-paise`, through `payments.WalletService.grantCredits`) — checked hourly |
+| Squads | Private groups (college, office, friends) joined by a 6-character code; a squad can require a confirmed email at its domain (public domains like gmail.com are refused). Members see each other's upcoming rides. (Rides visible only inside a squad is left for later) |
+| Event rides | Events added by staff (`content.moderate`); each lists scheduled rides stopping within 25 km in the 48 hours before it starts, with "Offer a ride there" |
+| Vibe match | A 5–99 score from chat style, music, smoking, pets and up to 8 shared interests (from a fixed list), shown on search results. Others see the score, never the answers |
+| Leaderboards | A monthly eco-champions board (opt-in, nickname only; nicknames can't hold phone numbers) and the game ratings from Phase 8 |
 
-Anti-abuse: XP and referral rewards are given only for completed trips that both sides confirm, with device and payment checks to stop fake accounts.
+Anti-abuse: rewards come only from trips the rides module marks completed, and the invite reward needs a ride with someone other than the inviter. Device and payment checks against fake accounts come with launch hardening (Phase 11).
 
 ### 7.8 Promotions: members promote their business (Phase 10)
 
@@ -372,6 +372,7 @@ The table is the reference for that later work.
 | Pickup and return photos | 90 days after the rental ends | Deleted; the readings (odometer, fuel) are kept |
 | Driver partner profiles, licence numbers, police certificates | While the member drives with SaathChalo | Deleted when the account is erased; trips stay for the other side's history, without addresses or messages |
 | In-game chat (set phrases and emojis) | 7 days | Deleted |
+| Invite code, leaderboard nickname, squads joined, interests | Until the account is erased | Deleted; the member leaves every squad |
 | Games and ratings | Until the account is erased | Ratings deleted; seats in past games become "Former member" |
 | Help requests | Until the account is erased | Deleted |
 | Security logs | At least 1 year | Deleted |
@@ -433,7 +434,7 @@ frontend/src/app/
 | 6 ✓ | **Car rentals**: self-drive and with driver | Done |
 | 7 ✓ | **Driver partners**: licensed drivers register with their service areas; members hire a driver for their own car or a rental | Done |
 | 8 ✓ | **Games**: chess and ludo (computer, friends, quick match, ride lobby), leaderboards | Done |
-| 9 | **Gen-Z layer**: XP, badges, streaks, referrals, CO₂ card, squads, events, vibe match | 3–5 |
+| 9 ✓ | **Gen-Z layer**: XP, badges, streaks, referrals, CO₂ card, squads, events, vibe match | Done |
 | 10 | **Promotions marketplace** (free for the first month after launch) | 3–4 |
 | 11 | **Launch**: Hindi, notifications, security hardening, fixes from an external penetration test, monitoring, deployment | 4–5 |
 

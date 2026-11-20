@@ -77,6 +77,24 @@ public class MemberProfiles {
 		return users.findById(id).map(u -> new Traveller(u.getId(), u.displayName(), u.getGender(), u.isProfileComplete()));
 	}
 
+	/** Travel preferences, for vibe match. Shown as a score only, never as the answers themselves. */
+	public record Preferences(ChatPreference chat, boolean music, boolean smoking, boolean pets) {
+	}
+
+	@Transactional(readOnly = true)
+	public Map<UUID, Preferences> preferences(Collection<UUID> ids) {
+		Map<UUID, Preferences> out = new LinkedHashMap<>();
+		users.findAllById(ids.stream().distinct().toList())
+			.forEach(u -> out.put(u.getId(), new Preferences(u.getPrefChat(), u.isPrefMusic(), u.isPrefSmoking(), u.isPrefPets())));
+		return out;
+	}
+
+	/** The member's email, if they have confirmed it (for squads that check a college or work email domain). */
+	@Transactional(readOnly = true)
+	public Optional<String> verifiedEmail(UUID id) {
+		return users.findById(id).filter(User::isEmailVerified).map(User::getEmail);
+	}
+
 	/** Several members at once (for filters such as "women drivers only"). */
 	@Transactional(readOnly = true)
 	public Map<UUID, Traveller> travellers(Collection<UUID> ids) {

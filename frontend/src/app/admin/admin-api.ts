@@ -32,6 +32,7 @@ import {
 import { PayoutView, WalletView } from '../core/payments-api';
 import { AdminListingRow, RentalView } from '../core/rentals-api';
 import { AdminDriverRow, TripView } from '../core/drivers-api';
+import { EventCard } from '../core/social-api';
 
 /** Calls to the staff console API. Console tokens and 2FA confirmations are added by adminInterceptor. */
 @Injectable({ providedIn: 'root' })
@@ -165,6 +166,16 @@ export class AdminApi {
   }
   cancelRental(id: string) {
     return firstValueFrom(this.http.post<RentalView>(`/api/admin/rentals/bookings/${encodeURIComponent(id)}/cancel`, null));
+  }
+  events() {
+    return firstValueFrom(this.http.get<EventCard[]>('/api/admin/events'));
+  }
+  saveEvent(id: string | null, body: { title: string; venue: string; placeId: number; startsAt: string; description: string | null }) {
+    return firstValueFrom(id ? this.http.put<EventCard>(`/api/admin/events/${encodeURIComponent(id)}`, body)
+      : this.http.post<EventCard>('/api/admin/events', body));
+  }
+  cancelEvent(id: string) {
+    return firstValueFrom(this.http.post<EventCard>(`/api/admin/events/${encodeURIComponent(id)}/cancel`, null));
   }
   drivers(status: 'IN_REVIEW' | 'ALL') {
     return firstValueFrom(this.http.get<AdminDriverRow[]>('/api/admin/drivers', { params: new HttpParams().set('status', status) }));

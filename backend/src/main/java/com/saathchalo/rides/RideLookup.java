@@ -139,6 +139,77 @@ public class RideLookup {
 		return trips;
 	}
 
+	/**
+	 * A completed trip as rewards count it. {@code km}: the part this member travelled (a driver: the whole ride);
+	 * {@code passengerKm}: km × seats of the passengers on it, the car-km saved; {@code rupees}: costs shared.
+	 */
+	public record SharedTrip(UUID rideId, Instant departureAt, boolean asDriver, int km, int passengerKm, List<UUID> mates,
+			int rupees) {
+	}
+
+	/** Every completed trip this member shared (driving with passengers, or riding), newest first. */
+	@Transactional(readOnly = true)
+	public List<SharedTrip> sharedTrips(UUID memberId) {
+		List<SharedTrip> out = new java.util.ArrayList<>();
+		List<UUID> driven = rides.findByDriverIdAndStatusAndDepartureAtAfter(memberId, RideStatus.COMPLETED, Instant.EPOCH).stream()
+			.map(Ride::getId)
+			.toList();
+		if (!driven.isEmpty()) {
+			Map<UUID, List<Booking>> riders = bookings.findByRideIdInAndStatusIn(driven, java.util.Set.of(BookingStatus.COMPLETED))
+				.stream()
+				.collect(java.util.stream.Collectors.groupingBy(Booking::getRideId));
+			for (Ride r : rides.findWithStops(driven)) {
+				List<Booking> bs = riders.getOrDefault(r.getId(), List.of());
+				if (!bs.isEmpty()) {
+					out.add(new SharedTrip(r.getId(), r.getDepartureAt(), true, r.getDistanceKm(),
+							bs.stream().mapToInt(b -> segmentKm(r, b) * b.getSeats()).sum(),
+							bs.stream().map(Booking::getPassengerId).distinct().toList(),
+							bs.stream().mapToInt(b -> b.getPricePerSeat() * b.getSeats()).sum()));
+				}
+			}
+		}
+		List<Booking> ridden = bookings.findByPassengerIdAndStatusAndCreatedAtAfter(memberId, BookingStatus.COMPLETED, Instant.EPOCH);
+		if (!ridden.isEmpty()) {
+			Map<UUID, Ride> byId = new LinkedHashMap<>();
+			rides.findWithStops(ridden.stream().map(Booking::getRideId).distinct().toList()).forEach(r -> byId.put(r.getId(), r));
+			for (Booking b : ridden) {
+				Ride r = byId.get(b.getRideId());
+				if (r != null && r.getStatus() == RideStatus.COMPLETED) {
+					int km = segmentKm(r, b);
+					out.add(new SharedTrip(r.getId(), r.getDepartureAt(), false, km, km * b.getSeats(), List.of(r.getDriverId()),
+							b.getPricePerSeat() * b.getSeats()));
+				}
+			}
+		}
+		out.sort(Comparator.comparing(SharedTrip::departureAt).reversed());
+		return out;
+	}
+
+	/** Upcoming rides offered by these drivers, soonest first (for squads). */
+	@Transactional(readOnly = true)
+	public List<RideBrief> upcomingByDrivers(Collection<UUID> driverIds, int limit) {
+		if (driverIds.isEmpty()) {
+			return List.of();
+		}
+		return ordered(rides.findUpcomingIds(driverIds, RideStatus.SCHEDULED, Instant.now(),
+				org.springframework.data.domain.PageRequest.of(0, limit)));
+	}
+
+	/** Scheduled rides stopping within {@code radiusKm} of a place, departing in the window (for event pages). */
+	@Transactional(readOnly = true)
+	public List<RideBrief> goingNear(double lat, double lng, double radiusKm, Instant from, Instant to) {
+		return ordered(rides.findIdsGoingNear(lat, lng, radiusKm * 1000, from, to));
+	}
+
+	private List<RideBrief> ordered(List<UUID> ids) {
+		Map<UUID, RideBrief> byId = briefs(ids);
+		return ids.stream().map(byId::get).filter(java.util.Objects::nonNull).toList();
+	}
+
+	private static int segmentKm(Ride r, Booking b) {
+		return r.getStops().get(b.getToPosition()).getKmFromStart() - r.getStops().get(b.getFromPosition()).getKmFromStart();
+	}
+
 	@Transactional(readOnly = true)
 	public Map<UUID, RideBrief> briefs(Collection<UUID> rideIds) {
 		Map<UUID, RideBrief> out = new LinkedHashMap<>();

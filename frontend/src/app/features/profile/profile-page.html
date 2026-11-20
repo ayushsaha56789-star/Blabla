@@ -170,6 +170,9 @@
     @if (features.isOn('safety.sos')) {
       <app-emergency-contacts id="safety" class="mt-6 scroll-mt-24" />
     }
+    @if (features.isOn('vibe_match')) {
+      <app-interests id="interests" class="mt-6 scroll-mt-24" />
+    }
     <div class="h-20 lg:hidden" aria-hidden="true"></div>
   </div>
 }

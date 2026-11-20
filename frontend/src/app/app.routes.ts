@@ -187,6 +187,36 @@ export const routes: Routes = [
     canActivate: [authGuard, featureGuard('games')],
     loadComponent: () => import('./features/games/game-page').then((m) => m.GamePage),
   },
+  {
+    path: 'rewards',
+    title: 'My journey · SaathChalo',
+    canActivate: [authGuard, featureGuard('rewards')],
+    loadComponent: () => import('./features/rewards/rewards-page').then((m) => m.RewardsPage),
+  },
+  {
+    path: 'invite/:code',
+    title: 'Invite · SaathChalo',
+    canActivate: [authGuard, featureGuard('rewards')],
+    loadComponent: () => import('./features/rewards/invite-page').then((m) => m.InvitePage),
+  },
+  {
+    path: 'community',
+    title: 'Squads & events · SaathChalo',
+    canActivate: [authGuard, featureGuard('community')],
+    loadComponent: () => import('./features/community/community-page').then((m) => m.CommunityPage),
+  },
+  {
+    path: 'community/squads/:id',
+    title: 'Squad · SaathChalo',
+    canActivate: [authGuard, featureGuard('community')],
+    loadComponent: () => import('./features/community/squad-page').then((m) => m.SquadPage),
+  },
+  {
+    path: 'community/events/:id',
+    title: 'Event · SaathChalo',
+    canActivate: [authGuard, featureGuard('community')],
+    loadComponent: () => import('./features/community/event-page').then((m) => m.EventPage),
+  },
   // "Coming soon" pages for areas the owner has switched on ahead of launch.
   ...FEATURE_PAGES.filter((p) => !p.built).map((p) => ({
     path: p.path.slice(1),

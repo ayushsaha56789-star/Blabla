@@ -35,4 +35,18 @@ public interface RideRepository extends JpaRepository<Ride, UUID> {
 	List<Ride> findByDriverIdAndStatusAndDepartureAtAfter(UUID driverId, RideStatus status, Instant after);
 
 	long countByDriverIdAndStatus(UUID driverId, RideStatus status);
+
+	@Query("select r.id from Ride r where r.driverId in :drivers and r.status = :status and r.departureAt > :after order by r.departureAt")
+	List<UUID> findUpcomingIds(@Param("drivers") Collection<UUID> drivers, @Param("status") RideStatus status,
+			@Param("after") Instant after, org.springframework.data.domain.Pageable page);
+
+	/** Scheduled rides with a stop (after the start) within {@code meters} of a point, departing in the window. */
+	@Query(value = """
+			SELECT r.id FROM rides r
+			WHERE r.status = 'SCHEDULED' AND r.departure_at BETWEEN :from AND :to
+			  AND EXISTS (SELECT 1 FROM ride_stops s WHERE s.ride_id = r.id AND s.position > 0
+			      AND ST_DWithin(s.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :meters))
+			ORDER BY r.departure_at LIMIT 50""", nativeQuery = true)
+	List<UUID> findIdsGoingNear(@Param("lat") double lat, @Param("lng") double lng, @Param("meters") double meters,
+			@Param("from") Instant from, @Param("to") Instant to);
 }

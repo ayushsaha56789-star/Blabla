@@ -65,6 +65,7 @@ export const FEATURE_PAGES: readonly FeaturePage[] = [
   {
     key: 'rewards',
     path: '/rewards',
+    built: true,
     label: 'Rewards',
     icon: 'trophy',
     tagline: 'Level up every time you share a ride.',
@@ -79,6 +80,7 @@ export const FEATURE_PAGES: readonly FeaturePage[] = [
   {
     key: 'community',
     path: '/community',
+    built: true,
     label: 'Squads & events',
     icon: 'users',
     tagline: 'Ride with your college, your office, your people.',

@@ -16,8 +16,9 @@ Built with **Java 25 + Spring Boot 4** (backend) and **Angular 22 + Tailwind CSS
 | 6. Car rentals | List your car; rent one self-drive or with a driver; document checks, pickup and return records, deposits and disputes | ✅ Done |
 | 7. Driver partners | Licensed drivers sign up with their areas and prices; members hire one for their own car, with a start code, SOS and ratings | ✅ Done |
 | 8. Games | Chess and ludo, free: against the computer, with friends, quick match, with co-travellers; ratings and a leaderboard | ✅ Done |
-| 9. Gen-Z layer | XP, badges, referrals, squads, events, vibe match | Next |
-| 10–11 | Promotions, launch | Planned — see the architecture doc |
+| 9. Gen-Z layer | My journey (XP, levels, badges, streaks, CO₂ saved, share card), invite rewards, squads, event rides, vibe match, eco leaderboard | ✅ Done |
+| 10. Promotions | Members promote their business (free for the first month after launch) | Next |
+| 11 | Launch: Hindi, notifications, hardening, deployment | Planned — see the architecture doc |
 
 ## Run it locally
 
@@ -118,6 +119,17 @@ Games are **off** until you switch them on (console → Feature switches → **G
 - **On a ride:** the driver and confirmed passengers see **Play on the way** on the ride page, which opens the ride's own game room.
 - **Ratings and leaderboard:** online games between members only (Elo, everyone starts at 1200). Chat is emojis and set phrases only.
 
+## Rewards, squads, events and vibe match (try it)
+
+Each has its own switch (console → Feature switches → **Rewards**, **Squads and events**, **Vibe match**); all are off until you turn them on.
+
+- **My journey** (`/rewards`, in the account menu): XP, levels and badges (First ride, Eco hero, Road tripper, Night owl, Social butterfly, …), weekly streaks and a monthly "3 shared rides" challenge, plus CO₂ saved, km shared, people met and costs shared. Everything is worked out from completed trips, so nothing can be gamed. **Share my card** makes an image for Instagram or WhatsApp.
+- **Invites:** everyone has an invite code and link (`/invite/CODE`). A new member can use one in their first two weeks. When they complete their first ride with someone other than the person who invited them, both get ₹50 in SaathChalo credits (checked every hour; `app.rewards.referral-credit-paise`).
+- **Eco champions:** an opt-in monthly CO₂ leaderboard that shows nicknames only.
+- **Squads** (`/community`): private groups for a college, an office or friends. Join with a 6-character code; a squad can require a confirmed email at its domain (for example `iitd.ac.in`). The squad page shows its members and the rides they're offering.
+- **Events:** staff add concerts, fests and matches in the console (**Events**). Each event page lists rides that stop within 25 km of it in the two days before, and has **Offer a ride there**.
+- **Vibe match:** members pick interests on their profile. Ride search then shows a "% vibe" score for each driver, from chat style, music, smoking, pets and shared interests (never the answers themselves).
+
 ## The staff console (`/admin`)
 
 1. Log in with the number from step 2. You become **super admin** automatically (only when no super admin exists yet).
@@ -135,6 +147,7 @@ What you can do there:
 - **Help requests** — members' questions, oldest first; reply within 24 hours. Answered requests close by themselves after a quiet week.
 - **Payments** — what's held for upcoming trips, owed to drivers and given as credits, with three health checks (the ledger balances, wallets match it, held money matches open payments); every payment and refund (failed refunds can be retried); **Payouts** to drivers. A member's page shows their wallet and lets refund-handling staff give goodwill credits.
 - **Rentals** — check new car listings (photos, RC and insurance; every document view is recorded) and approve or send them back; settle disputes about charges after a return; see every rental and cancel one if needed (everything is refunded).
+- **Events** — add events (title, venue, town, start time) that members can find rides to; change or cancel them.
 - **Drivers** — check new driver partners (licence details, areas, prices, optional police certificate) and approve them or send them back; take a live driver off the road (their upcoming trips are cancelled and refunded); see every hired-driver trip and cancel one with a full refund.
 - **ID checks** — compare the ID photo (or driving licence) with the profile, then approve or reject with a reason. Every photo view is recorded; photos are stored encrypted and deleted 30 days after the decision (at once if a full Aadhaar number is visible).
 - **Staff** — add people (they must have logged in once) as Admin, Moderator or Support; change roles; reset two-step verification for a lost phone.
@@ -143,8 +156,8 @@ What you can do there:
 | Role | Can do |
 |---|---|
 | Super admin | Everything, including feature switches, staff, settings and driver payouts |
-| Admin | Members (incl. phone numbers), restrictions, ID checks, reports, SOS alerts, help requests, rentals, drivers, payments and credits, audit log |
-| Moderator | Members, restrictions, ID checks, reports, SOS alerts, help requests |
+| Admin | Members (incl. phone numbers), restrictions, ID checks, reports, events, SOS alerts, help requests, rentals, drivers, payments and credits, audit log |
+| Moderator | Members, restrictions, ID checks, reports, events, SOS alerts, help requests |
 | Support | Members (incl. phone numbers), SOS alerts, help requests |
 
 ## Tests
@@ -177,6 +190,8 @@ backend/                Spring Boot API, one module per feature (checked by Spri
     rentals/            car listings, rental bookings, pickup/return records, disputes
     drivers/            driver partners (licence, areas, prices), hired trips, start codes, ratings
     games/              chess and ludo rooms; rules and computer players in games/engine
+    rewards/            My journey (worked out from trips), invite codes and credits, eco leaderboard
+    community/          squads, event rides, vibe match
     admin/              staff console APIs
     files/ config/ common/
   src/main/resources/db/migration/   Flyway database migrations
