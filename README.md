@@ -15,8 +15,9 @@ Built with **Java 25 + Spring Boot 4** (backend) and **Angular 22 + Tailwind CSS
 | 5. Payments | Pay online (Razorpay), refunds, SaathChalo credits, driver earnings and payouts, double-entry ledger | ✅ Done |
 | 6. Car rentals | List your car; rent one self-drive or with a driver; document checks, pickup and return records, deposits and disputes | ✅ Done |
 | 7. Driver partners | Licensed drivers sign up with their areas and prices; members hire one for their own car, with a start code, SOS and ratings | ✅ Done |
-| 8. Games | Chess and ludo, free | Next |
-| 9–11 | Gen-Z features, promotions, launch | Planned — see the architecture doc |
+| 8. Games | Chess and ludo, free: against the computer, with friends, quick match, with co-travellers; ratings and a leaderboard | ✅ Done |
+| 9. Gen-Z layer | XP, badges, referrals, squads, events, vibe match | Next |
+| 10–11 | Promotions, launch | Planned — see the architecture doc |
 
 ## Run it locally
 
@@ -107,6 +108,16 @@ Driver partners are **off** until you switch them on (console → Feature switch
 - **Cancelling** (trips paid online): everything back before the driver accepts, at least 24 hours ahead, if the driver hadn't set off by the start time, or when the driver or staff cancel (a driver must give a reason). Later, half goes to the driver (the same `app.payments.*` settings as rides).
 - A self-drive rental page offers "Rather not drive? Hire a checked driver for this rental", with the search filled in.
 
+## Games (try it)
+
+Games are **off** until you switch them on (console → Feature switches → **Games**; chess, ludo, computer, online, ride rooms and leaderboards each have their own switch under it). No money, prizes or betting of any kind.
+
+- **Games** (`/games`, or **Explore → Games**): choose the computer's level, then **Play the computer**, **With a friend** (you get a 6-character room code and an invite link) or **Quick match** (the next member who asks plays you). Friends join with the code at the top of the page.
+- **Chess:** tap a piece to see where it can go, then tap the square. Online games have 10-minute clocks; you can resign. The board turns round when you play black.
+- **Ludo:** 2–4 players. One tap to roll; when only one move is possible it plays itself; tap a glowing token otherwise. If you don't play within 30 seconds the computer plays that turn for you (after two in a row, until you're back). Empty seats can be filled with computer players.
+- **On a ride:** the driver and confirmed passengers see **Play on the way** on the ride page, which opens the ride's own game room.
+- **Ratings and leaderboard:** online games between members only (Elo, everyone starts at 1200). Chat is emojis and set phrases only.
+
 ## The staff console (`/admin`)
 
 1. Log in with the number from step 2. You become **super admin** automatically (only when no super admin exists yet).
@@ -165,6 +176,7 @@ backend/                Spring Boot API, one module per feature (checked by Spri
     payments/           checkout (Razorpay), refunds, credits, earnings, payouts, ledger
     rentals/            car listings, rental bookings, pickup/return records, disputes
     drivers/            driver partners (licence, areas, prices), hired trips, start codes, ratings
+    games/              chess and ludo rooms; rules and computer players in games/engine
     admin/              staff console APIs
     files/ config/ common/
   src/main/resources/db/migration/   Flyway database migrations

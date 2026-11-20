@@ -175,6 +175,18 @@ export const routes: Routes = [
     canActivate: [featureGuard('drivers')],
     loadComponent: () => import('./features/drivers/driver-page').then((m) => m.DriverPage),
   },
+  {
+    path: 'games',
+    title: 'Games · SaathChalo',
+    canActivate: [authGuard, featureGuard('games')],
+    loadComponent: () => import('./features/games/games-page').then((m) => m.GamesPage),
+  },
+  {
+    path: 'games/:id',
+    title: 'Game · SaathChalo',
+    canActivate: [authGuard, featureGuard('games')],
+    loadComponent: () => import('./features/games/game-page').then((m) => m.GamePage),
+  },
   // "Coming soon" pages for areas the owner has switched on ahead of launch.
   ...FEATURE_PAGES.filter((p) => !p.built).map((p) => ({
     path: p.path.slice(1),

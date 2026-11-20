@@ -20,6 +20,7 @@ export const FEATURE_PAGES: readonly FeaturePage[] = [
   {
     key: 'games',
     path: '/games',
+    built: true,
     label: 'Games',
     icon: 'gamepad',
     tagline: 'Chess and ludo for the road — free, fair and fun.',

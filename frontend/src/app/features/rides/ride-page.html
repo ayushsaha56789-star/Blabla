@@ -78,6 +78,17 @@
                          [routeLabel]="'from ' + r.stops[0].name + ' to ' + r.stops[last()].name" />
       }
 
+      @if ((r.viewer === 'DRIVER' || r.myBooking?.status === 'CONFIRMED') && r.status === 'SCHEDULED' && features.isOn('games.ride_lobby')) {
+        <section class="card p-5 sm:p-6 lg:col-start-1" aria-labelledby="ride-games-heading">
+          <h2 id="ride-games-heading" class="kicker">Play on the way</h2>
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">A game room just for the people on this ride. Free, no money involved.</p>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            @if (features.isOn('games.chess')) { <button type="button" class="btn btn-secondary" (click)="playOnRide('CHESS')" [disabled]="busy()">♞︎ Chess</button> }
+            @if (features.isOn('games.ludo')) { <button type="button" class="btn btn-secondary" (click)="playOnRide('LUDO')" [disabled]="busy()">⚄ Ludo</button> }
+          </div>
+        </section>
+      }
+
       <!-- Booking panel / driver panel -->
       <aside id="book" class="lg:sticky lg:top-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start" aria-label="Booking">
         <div class="card p-5 sm:p-6">

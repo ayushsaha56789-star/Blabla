@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth.service';
 import { ChatApi } from '../../core/chat-api';
 import { problemOf } from '../../core/errors';
 import { FeaturesService } from '../../core/features.service';
+import { Game, GamesApi } from '../../core/games-api';
 import { bookingStatus, duration, rupees, seatsLeftFor, whatsappLink } from '../../core/rides-format';
 import { BookingStatus, PassengerView, RideDetails } from '../../core/rides.models';
 import { RidesApi } from '../../core/rides-api';
@@ -34,6 +35,7 @@ export class RidePage {
   private readonly api = inject(RidesApi);
   private readonly chat = inject(ChatApi);
   private readonly router = inject(Router);
+  private readonly games = inject(GamesApi);
   private readonly location = inject(Location);
   private readonly toast = inject(ToastService);
   private readonly trips = inject(TripsService);
@@ -150,6 +152,19 @@ export class RidePage {
 
   protected statusOf(status: BookingStatus) {
     return bookingStatus(status);
+  }
+
+  /** Opens (or joins) the game room for the people on this ride. */
+  protected async playOnRide(game: Game): Promise<void> {
+    this.busy.set(true);
+    try {
+      const room = await this.games.ride(this.id(), game);
+      void this.router.navigate(['/games', room.id]);
+    } catch (e) {
+      this.toast.error(problemOf(e).detail);
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   protected back(): void {

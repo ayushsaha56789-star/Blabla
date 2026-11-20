@@ -26,7 +26,7 @@ The **owner (super admin)** controls everything from an admin console: which fea
 | App type | One responsive website: member area plus an `/admin` console in the same Angular app | One codebase and one design; works on phones and laptops |
 | Backend | **Modular monolith**: one Spring Boot app split into strict modules, with the boundaries checked by Spring Modulith | Simple to build, run and pay for. A busy module (for example games) can become its own service later |
 | Database | PostgreSQL 16 + PostGIS. Redis joins when games arrive (Phase 8) | Postgres handles maps, money, search and driver service areas; Redis holds live game rooms and rate limits |
-| Real-time | WebSocket (STOMP) inside the backend | Chat, live games, booking updates, instant feature switches |
+| Real-time | Short polling with version numbers (built); WebSocket (STOMP) later if scale needs it | Chat, live games, booking updates, feature switches |
 | Files | S3-compatible storage in an India region (local disk during development) | Private, encrypted and cheap, and the data stays in India |
 | Owner control | Roles and permissions, feature switches, audit log | The owner decides what members see, and every staff action can be traced |
 | Games | Free only. The server referees online games; computer opponents run in the browser | Indian law bans money games; browser opponents cost nothing to run |
@@ -99,7 +99,7 @@ Modules talk to each other only through each module's public service classes and
 | `support` | Help requests and the grievance workflow | 4 ✓ |
 | `rentals` | Rental listings (self-drive or with driver), calendar, bookings, deposits, pickup/return checks, disputes | 6 ✓ |
 | `drivers` | Driver partners: licence check, service areas, availability, rates, hire-a-driver bookings | 7 ✓ |
-| `games` | Chess, ludo, rooms, matchmaking, ratings, leaderboards | 8 |
+| `games` | Chess, ludo, rooms, matchmaking, ratings, leaderboards | 8 ✓ |
 | `rewards` | XP, levels, badges, streaks, challenges, referrals | 9 |
 | `community` | Squads (college, office and friend groups), event rides | 9 |
 | `promotions` | Business profiles, sponsored posts, review, billing, statistics | 10 |
@@ -186,7 +186,7 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
 **How switches are enforced**
 
 - **Server.** Every API of a feature is marked, for example `@RequiresFeature("games.chess")`. If the switch is off for that member, the API answers "not available". The server never relies on the website to hide things.
-- **Website.** `GET /api/features` returns the switches that are on for the current member, and menus, pages and buttons appear only for those. When the owner flips a switch, open browsers pick it up on the next page load or within a minute. Live updates over WebSocket come with games (Phase 8).
+- **Website.** `GET /api/features` returns the switches that are on for the current member, and menus, pages and buttons appear only for those. When the owner flips a switch, open browsers pick it up on the next page load or within a minute.
 
 ## 7. Feature designs
 
@@ -268,19 +268,20 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
      └─► CANCELLED before the start (refund by the rules; everything back if the driver cancels)
 ```
 
-### 7.6 Games (Phase 8)
+### 7.6 Games (Phase 8, built)
 
 - **Chess and ludo, free to play.** No betting, entry fees, cash prizes or paid advantages. The Online Gaming Act, 2025 bans money games.
+- **Every game runs on the server** (a change from the first plan, which had the computer opponent in the browser and chess rules from the chesslib library). chesslib is published only on JitPack, an extra repository that builds code straight from GitHub, which we preferred not to add. So the chess rules are our own (`games.engine.ChessPosition`), checked with the standard "perft" move counts from five well-known positions, and the browser only draws the board and the legal moves the server sends. One set of rules, no extra npm package, and fair play by design.
 - Ways to play:
-  - **Against the computer**: easy, medium or hard. It runs in the browser, so it works on a slow connection and costs nothing to host.
-  - **With friends**: room code or invite link.
-  - **Quick match**: automatic matchmaking with someone online.
-  - **With co-travellers**: a game room opens automatically for the confirmed members of a ride.
-- **Automatic helpers.** One-tap dice roll and token moves. When only one move is possible, it plays itself. If a player leaves or runs out of time, a computer player takes over so the game can finish.
-- **Fair play.** Online games are refereed by the server: it checks every move and rolls every die with a secure random generator, so a player's browser can't cheat.
-- Chess rules on the server come from an open-source Java library (chesslib, Apache 2.0 licence). The computer opponent starts as our own engine. Stockfish (much stronger) is an option later, but its GPL licence means publishing the source of that part.
-- Ratings and leaderboards count online games only. In-game chat is emojis and set phrases only, which keeps it safe.
-- Original board, pieces and sounds. Nothing is copied from existing game apps.
+  - **Against the computer**: easy, medium or hard (a small alpha-beta search; easy sometimes plays a random move). Ludo against 1–3 computer players.
+  - **With friends**: a 6-character room code or invite link; ludo rooms can fill empty seats with computer players.
+  - **Quick match**: the next member who asks for the same game (2 players).
+  - **With co-travellers**: from the ride page, the driver and confirmed passengers open or join the ride's room.
+- **Automatic helpers.** One tap to roll; when only one move is possible (or all are the same), it plays itself. Computer players act after a short pause so people can follow. A ludo player who runs out of their 30 seconds has the turn played for them; after two in a row the computer plays for them until they act again. Online chess has 10-minute clocks (running out loses).
+- **Fair play.** The server checks every move and rolls every die with `SecureRandom`; the browser can't cheat.
+- **Live updates:** the game page asks for news every second (`GET /api/games/{id}?since=version` answers 204 when nothing changed). Turns that are due are played on that request, and a job every 10 seconds plays them in games nobody is watching. This is simpler than WebSockets and enough for turn-based games; WebSockets can come later if needed.
+- Ratings (Elo, starting at 1200) and the leaderboard count online games between people only (no computer players). In-game chat is emojis and set phrases only, kept a week.
+- Original board, pieces and colours (Unicode chess symbols; a ludo board drawn in CSS). Nothing is copied from existing game apps.
 
 ### 7.7 Rewards and social: the Gen-Z layer (Phase 9)
 
@@ -326,7 +327,7 @@ Anti-abuse: XP and referral rewards are given only for completed trips that both
 | Input and output | Every request validated; Angular escapes all output; strict Content Security Policy and security headers |
 | Files | Images re-encoded, documents scanned and encrypted, private storage, short-lived download links |
 | Money | Signed webhooks, idempotency keys, double-entry ledger, daily reconciliation |
-| Real-time | WebSocket connections need a login; members can join only their own rooms; message size and rate limits |
+| Real-time | Game and chat updates need a login; members see only rooms they're in; chat is rate limited (games: one set phrase every 2 seconds) |
 | Data | Encrypted disks and backups; sensitive fields (licence and RC numbers, documents) encrypted by the app; phone numbers masked in the console unless a permitted staff member reveals one (audited) |
 | Secrets | Environment variables locally, a secrets manager in production, secret scanning on every change |
 | Supply chain | Pinned versions, a one-week minimum age for new packages, dependency and container scanning, software bill of materials |
@@ -370,6 +371,8 @@ The table is the reference for that later work.
 | Car documents (RC, insurance, permit) | While the listing exists | Deleted when the listing is removed or the account erased |
 | Pickup and return photos | 90 days after the rental ends | Deleted; the readings (odometer, fuel) are kept |
 | Driver partner profiles, licence numbers, police certificates | While the member drives with SaathChalo | Deleted when the account is erased; trips stay for the other side's history, without addresses or messages |
+| In-game chat (set phrases and emojis) | 7 days | Deleted |
+| Games and ratings | Until the account is erased | Ratings deleted; seats in past games become "Former member" |
 | Help requests | Until the account is erased | Deleted |
 | Security logs | At least 1 year | Deleted |
 | Payments, refunds, payouts and the ledger | As tax law requires (about 8 years); kept after an account is erased, pointing to the anonymised account | Archived |
@@ -429,7 +432,7 @@ frontend/src/app/
 | 5 ✓ | **Payments and wallet**: Razorpay, refunds, ledger, credits, payouts | Done |
 | 6 ✓ | **Car rentals**: self-drive and with driver | Done |
 | 7 ✓ | **Driver partners**: licensed drivers register with their service areas; members hire a driver for their own car or a rental | Done |
-| 8 | **Games**: chess and ludo (computer, friends, quick match, ride lobby), leaderboards | 4–6 |
+| 8 ✓ | **Games**: chess and ludo (computer, friends, quick match, ride lobby), leaderboards | Done |
 | 9 | **Gen-Z layer**: XP, badges, streaks, referrals, CO₂ card, squads, events, vibe match | 3–5 |
 | 10 | **Promotions marketplace** (free for the first month after launch) | 3–4 |
 | 11 | **Launch**: Hindi, notifications, security hardening, fixes from an external penetration test, monitoring, deployment | 4–5 |
