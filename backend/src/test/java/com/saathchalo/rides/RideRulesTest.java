@@ -16,7 +16,8 @@ class RideRulesTest {
 
 	private static final UUID RIDE = UUID.randomUUID();
 
-	private static final AppProperties.Rides CONFIG = new AppProperties.Rides(2.0, 3.5, 20, 30, 90, Duration.ofHours(12));
+	private static final AppProperties.Rides CONFIG = new AppProperties.Rides(2.0, 3.5, 20, 30, 90, Duration.ofHours(12),
+			Duration.ofMinutes(15));
 
 	@Test
 	void aSeatIsUsedOnlyOnTheStretchesItIsBookedFor() {

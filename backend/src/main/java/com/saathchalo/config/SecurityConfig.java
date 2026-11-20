@@ -50,6 +50,8 @@ public class SecurityConfig {
 				.requestMatchers("/api/users/me", "/api/users/me/**").authenticated()
 				.requestMatchers(HttpMethod.POST, "/api/auth/otp/request", "/api/auth/otp/verify",
 						"/api/auth/refresh", "/api/auth/logout").permitAll()
+				// The payment gateway's notifications: no login, but every event must carry a valid signature.
+				.requestMatchers(HttpMethod.POST, "/api/payments/webhook").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/users/*", "/api/files/**", "/api/features").permitAll()
 				// Visitors can look for rides before logging in: place names, search results and ride pages.
 				// Booking, offering and everything personal still needs a login.

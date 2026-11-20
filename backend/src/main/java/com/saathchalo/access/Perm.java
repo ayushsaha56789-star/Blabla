@@ -23,4 +23,8 @@ public final class Perm {
 	public static final String SUPPORT_TICKETS = "hasAuthority('PERM_support.tickets')";
 
 	public static final String VERIFICATION_REVIEW = "hasAuthority('PERM_verification.review')";
+
+	public static final String PAYMENTS_REFUND = "hasAuthority('PERM_payments.refund')";
+
+	public static final String PAYOUTS_APPROVE = "hasAuthority('PERM_payouts.approve')";
 }

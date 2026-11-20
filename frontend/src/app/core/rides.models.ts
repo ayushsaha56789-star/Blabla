@@ -40,7 +40,7 @@ export interface Quote {
 }
 
 export type RideStatus = 'SCHEDULED' | 'CANCELLED' | 'COMPLETED';
-export type BookingStatus = 'REQUESTED' | 'CONFIRMED' | 'DECLINED' | 'CANCELLED' | 'EXPIRED' | 'COMPLETED';
+export type BookingStatus = 'AWAITING_PAYMENT' | 'REQUESTED' | 'CONFIRMED' | 'DECLINED' | 'CANCELLED' | 'EXPIRED' | 'COMPLETED';
 export type Viewer = 'DRIVER' | 'PASSENGER' | 'VISITOR' | 'STAFF';
 
 export interface MemberCard {

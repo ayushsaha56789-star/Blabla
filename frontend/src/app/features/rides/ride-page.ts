@@ -9,6 +9,8 @@ import { FeaturesService } from '../../core/features.service';
 import { bookingStatus, duration, rupees, seatsLeftFor, whatsappLink } from '../../core/rides-format';
 import { BookingStatus, PassengerView, RideDetails } from '../../core/rides.models';
 import { RidesApi } from '../../core/rides-api';
+import { CheckoutService } from '../../core/checkout.service';
+import { CheckoutView, feeFor, paise, PaymentOptions, PaymentsApi, PaymentView, RefundPreview } from '../../core/payments-api';
 import { ToastService } from '../../core/toast.service';
 import { TripsService } from '../../core/trips.service';
 import { Avatar } from '../../shared/avatar';
@@ -35,8 +37,18 @@ export class RidePage {
   private readonly location = inject(Location);
   private readonly toast = inject(ToastService);
   private readonly trips = inject(TripsService);
+  private readonly payments = inject(PaymentsApi);
+  private readonly checkout = inject(CheckoutService);
   protected readonly auth = inject(AuthService);
   protected readonly features = inject(FeaturesService);
+
+  /** How the member can pay, their payment for this ride, and what cancelling would give back. */
+  protected readonly payOptions = signal<PaymentOptions | null>(null);
+  protected readonly payNow = signal(true);
+  protected readonly useCredits = signal(true);
+  protected readonly myPayment = signal<PaymentView | null>(null);
+  protected readonly refundPreview = signal<RefundPreview | null>(null);
+  protected readonly money = paise;
 
   readonly id = input.required<string>();
   /** The stretch and seats chosen in search results. */
@@ -80,8 +92,25 @@ export class RidePage {
   });
   protected readonly liveBooking = computed(() => {
     const b = this.ride()?.myBooking;
-    return b && (b.status === 'REQUESTED' || b.status === 'CONFIRMED') ? b : null;
+    return b && (b.status === 'AWAITING_PAYMENT' || b.status === 'REQUESTED' || b.status === 'CONFIRMED') ? b : null;
   });
+  /** Paying online for this booking (the owner turned it on and the member chose it, or it's the only way). */
+  protected readonly online = computed(() => {
+    const o = this.payOptions();
+    return !!o?.online && (this.payNow() || !o.cash);
+  });
+  protected readonly seatPaise = computed(() => this.price() * this.seatsWanted() * 100);
+  protected readonly feePaise = computed(() => (this.online() ? feeFor(this.seatPaise(), this.payOptions()?.serviceFeePercent ?? 0) : 0));
+  /** Credits the server will use, worked out the same way (it keeps at least ₹1 for the gateway). */
+  protected readonly creditsToUse = computed(() => {
+    const o = this.payOptions();
+    if (!this.online() || !o?.credits || !this.useCredits() || o.creditsPaise <= 0) return 0;
+    const total = this.seatPaise() + this.feePaise();
+    let credits = Math.min(o.creditsPaise, total);
+    if (credits < total && total - credits < 100) credits = Math.max(0, total - 100);
+    return credits;
+  });
+  protected readonly payNowPaise = computed(() => this.seatPaise() + this.feePaise() - this.creditsToUse());
   protected readonly requests = computed(() => this.ride()?.passengers.filter((p) => p.status === 'REQUESTED') ?? []);
   protected readonly confirmed = computed(() => this.ride()?.passengers.filter((p) => p.status !== 'REQUESTED') ?? []);
   protected readonly seatsBooked = computed(() => this.confirmed().reduce((n, p) => n + p.seats, 0));
@@ -139,6 +168,10 @@ export class RidePage {
       void this.router.navigate(['/onboarding'], { queryParams: { returnUrl: this.router.url } });
       return;
     }
+    if (this.online()) {
+      await this.bookAndPay(r);
+      return;
+    }
     this.busy.set(true);
     try {
       const b = await this.api.book(r.id, {
@@ -181,6 +214,87 @@ export class RidePage {
       this.toast.error(problemOf(e).detail);
     } finally {
       this.busy.set(false);
+    }
+  }
+
+  /** Holds the seat, then opens the payment window. */
+  private async bookAndPay(r: RideDetails): Promise<void> {
+    this.busy.set(true);
+    try {
+      const view = await this.payments.checkout({
+        rideId: r.id,
+        fromPosition: this.fromPos(),
+        toPosition: this.toPos(),
+        seats: this.seatsWanted(),
+        message: this.message().trim() || null,
+        useCredits: this.creditsToUse() > 0,
+      });
+      this.message.set('');
+      if (view.status === 'PAID') {
+        this.toast.success(r.instantBooking ? 'Paid with your credits. Your seat is booked!' : 'Paid with your credits. Request sent to the driver.');
+      } else {
+        await this.finishPayment(view, r);
+      }
+    } catch (e) {
+      this.toast.error(problemOf(e).detail);
+    } finally {
+      await this.load(r.id, false);
+      void this.trips.refresh();
+      this.busy.set(false);
+    }
+  }
+
+  /** Back to a payment that wasn't finished (the seat is still held). */
+  protected async completePayment(): Promise<void> {
+    const p = this.myPayment();
+    const r = this.ride();
+    if (!p || !r) return;
+    this.busy.set(true);
+    try {
+      await this.finishPayment(await this.payments.resume(p.id), r);
+    } catch (e) {
+      this.toast.error(problemOf(e).detail);
+    } finally {
+      await this.load(r.id, false);
+      void this.trips.refresh();
+      this.busy.set(false);
+    }
+  }
+
+  private async finishPayment(view: CheckoutView, r: RideDetails): Promise<void> {
+    let answer;
+    try {
+      answer = await this.checkout.pay(view);
+    } catch (e) {
+      this.toast.error((e as Error).message);
+      return;
+    }
+    if (!answer) {
+      const until = new Date(view.holdUntil).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+      this.toast.info(`Payment not finished. Your seat is held until ${until}: finish paying here or from My rides.`);
+      return;
+    }
+    const paid = await this.payments.confirm(view.paymentId, answer);
+    if (!paid.seatHeld) {
+      this.toast.error('Your payment arrived after the seat was released, so we are refunding it in full.');
+    } else if (r.instantBooking) {
+      this.toast.success('Paid! Your seat is booked. Have a great trip.');
+    } else {
+      this.toast.success(`Paid! ${r.driver.profile.displayName} will accept or decline your request. If they decline, you get everything back.`);
+    }
+  }
+
+  /** Opens the cancel question, with what the member would get back. */
+  protected async askCancel(): Promise<void> {
+    this.confirmCancelBooking.set(true);
+    this.refundPreview.set(null);
+    const b = this.liveBooking();
+    if (b && this.myPayment()?.status === 'PAID') {
+      try {
+        this.refundPreview.set(await this.payments.refundPreview(b.id));
+      } catch {
+        // The question still works without the preview.
+      }
     }
   }
 
@@ -246,8 +360,19 @@ export class RidePage {
       this.problem.set(null);
       if (first) this.initStretch(r);
       this.clampSeats();
+      void this.loadPayments(r);
     } catch (e) {
       this.problem.set(problemOf(e));
+    }
+  }
+
+  private async loadPayments(r: RideDetails): Promise<void> {
+    if (!this.auth.isLoggedIn() || r.viewer === 'DRIVER') return;
+    try {
+      this.payOptions.set(await this.payments.options());
+      this.myPayment.set(r.myBooking ? ((await this.payments.forBookings([r.myBooking.id]))[0] ?? null) : null);
+    } catch {
+      // Paying the driver directly still works.
     }
   }
 

@@ -136,6 +136,7 @@ export class RideDetailPage {
   protected status(s: BookingStatus, cancelledBy: string | null): { text: string; tone: string } {
     const who: Record<string, string> = { PASSENGER: 'the passenger', DRIVER: 'the driver', STAFF: 'staff', SYSTEM: 'SaathChalo' };
     switch (s) {
+      case 'AWAITING_PAYMENT': return { text: 'Paying online', tone: 'warning' };
       case 'REQUESTED': return { text: 'Requested', tone: 'warning' };
       case 'CONFIRMED': return { text: 'Confirmed', tone: 'success' };
       case 'DECLINED': return { text: 'Declined by the driver', tone: 'danger' };

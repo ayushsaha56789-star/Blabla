@@ -2,6 +2,8 @@ package com.saathchalo.rides;
 
 import com.saathchalo.common.ApiException;
 import com.saathchalo.common.RateLimiter;
+import com.saathchalo.config.AppProperties;
+import com.saathchalo.features.FeatureService;
 import com.saathchalo.rides.RideDtos.BookRequest;
 import com.saathchalo.rides.RideDtos.BookingView;
 import com.saathchalo.rides.internal.Booking;
@@ -16,6 +18,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,8 +43,27 @@ public class BookingService {
 
 	private final Clock clock;
 
+	private final FeatureService features;
+
+	private final AppProperties.Rides config;
+
+	private final ObjectProvider<OnlinePayments> onlinePayments;
+
+	/** What the payments module needs to take payment for a booking that holds its seats meanwhile. */
+	public record PendingBooking(UUID bookingId, UUID rideId, UUID driverId, int seats, int pricePerSeat, String fromName,
+			String toName, Instant pickupAt, Instant holdUntil) {
+
+		public int total() {
+			return seats * pricePerSeat;
+		}
+	}
+
+	private record Prepared(Ride ride, int from, int to, int price, String message, Instant now) {
+	}
+
 	public BookingService(RideRepository rides, BookingRepository bookings, MemberProfiles members, RateLimiter limiter,
-			BlockService blocks, RideViews views, Clock clock) {
+			BlockService blocks, RideViews views, Clock clock, FeatureService features, AppProperties props,
+			ObjectProvider<OnlinePayments> onlinePayments) {
 		this.rides = rides;
 		this.bookings = bookings;
 		this.members = members;
@@ -49,10 +71,52 @@ public class BookingService {
 		this.blocks = blocks;
 		this.views = views;
 		this.clock = clock;
+		this.features = features;
+		this.config = props.rides();
+		this.onlinePayments = onlinePayments;
 	}
 
+	/** Paying the driver directly (cash or UPI on the day). */
 	@Transactional
 	public BookingView book(UUID rideId, UUID passengerId, BookRequest req) {
+		OnlinePayments online = onlinePayments.getIfAvailable();
+		if (!features.isOnFor("payments.cash", passengerId) && online != null && online.availableFor(passengerId)) {
+			throw ApiException.conflict("pay_online", "Seats are paid online now. Please choose \"Pay now\".");
+		}
+		Prepared p = prepare(rideId, passengerId, req);
+		Booking booking = bookings.save(new Booking(rideId, passengerId, p.from(), p.to(), req.seats(), p.price(),
+				p.ride().isInstantBooking(), p.message(), p.now()));
+		return views.booking(booking, p.ride());
+	}
+
+	/** Paying online: the seats are held for {@code app.rides.payment-hold} while the member pays. */
+	@Transactional
+	public PendingBooking bookAwaitingPayment(UUID rideId, UUID passengerId, BookRequest req) {
+		Prepared p = prepare(rideId, passengerId, req);
+		Booking b = bookings.save(Booking.awaitingPayment(rideId, passengerId, p.from(), p.to(), req.seats(), p.price(),
+				p.message(), p.now()));
+		Ride ride = p.ride();
+		return new PendingBooking(b.getId(), rideId, ride.getDriverId(), b.getSeats(), b.getPricePerSeat(),
+				ride.getStops().get(p.from()).getName(), ride.getStops().get(p.to()).getName(), ride.timeAt(p.from()),
+				p.now().plus(config.paymentHold()));
+	}
+
+	/** The payment came through. False when the seats are no longer held, so the payment must be refunded. */
+	@Transactional
+	public boolean paymentReceived(UUID bookingId) {
+		Ride ride = lockRideOf(bookingId);
+		Booking b = bookings.lockById(bookingId).orElseThrow(BookingService::notFound);
+		Instant now = clock.instant();
+		if (b.getStatus() != BookingStatus.AWAITING_PAYMENT || ride.getStatus() != RideStatus.SCHEDULED
+				|| !ride.timeAt(b.getFromPosition()).isAfter(now)) {
+			return false;
+		}
+		b.paid(ride.isInstantBooking(), now);
+		return true;
+	}
+
+	/** Checks everything about a booking request and works out its price. Locks the ride until the transaction ends. */
+	private Prepared prepare(UUID rideId, UUID passengerId, BookRequest req) {
 		Traveller me = members.traveller(passengerId);
 		if (!me.profileComplete()) {
 			throw ApiException.forbidden("profile_incomplete", "Add your first name and gender to your profile before booking.");
@@ -103,9 +167,7 @@ public class BookingService {
 		}
 		int price = RideRules.segmentPrice(ride.getPricePerSeat(), views.kmFromStart(ride), from, to);
 		String message = req.message() == null || req.message().isBlank() ? null : req.message().strip();
-		Booking booking = bookings.save(new Booking(rideId, passengerId, from, to, req.seats(), price,
-				ride.isInstantBooking(), message, now));
-		return views.booking(booking, ride);
+		return new Prepared(ride, from, to, price, message, now);
 	}
 
 	@Transactional

@@ -117,6 +117,8 @@
         }
       </section>
 
+      <app-member-wallet [memberId]="d.member.id" />
+
       @if (session.can('features.manage')) {
         <section class="card flex items-center justify-between gap-4 p-6">
           <div>

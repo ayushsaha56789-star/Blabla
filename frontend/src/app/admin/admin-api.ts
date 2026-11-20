@@ -22,10 +22,14 @@ import {
   StaffRow,
   StaffStatus,
   StaffIdCheck,
+  PaymentsSummary,
+  AdminPaymentRow,
+  OwedRow,
   StaffTicketRow,
   StaffTicketView,
   TotpSetup,
 } from './admin.models';
+import { PayoutView, WalletView } from '../core/payments-api';
 
 /** Calls to the staff console API. Console tokens and 2FA confirmations are added by adminInterceptor. */
 @Injectable({ providedIn: 'root' })
@@ -141,6 +145,30 @@ export class AdminApi {
   }
   cancelRide(id: string, reason: string) {
     return firstValueFrom(this.http.post<AdminRideDetails>(`/api/admin/rides/${encodeURIComponent(id)}/cancel`, { reason }));
+  }
+  paymentsSummary() {
+    return firstValueFrom(this.http.get<PaymentsSummary>('/api/admin/payments/summary'));
+  }
+  payments(filter: 'all' | 'problems') {
+    return firstValueFrom(this.http.get<AdminPaymentRow[]>('/api/admin/payments', { params: new HttpParams().set('filter', filter) }));
+  }
+  retryRefund(id: string) {
+    return firstValueFrom(this.http.post<void>(`/api/admin/refunds/${encodeURIComponent(id)}/retry`, null));
+  }
+  payoutsOwed() {
+    return firstValueFrom(this.http.get<OwedRow[]>('/api/admin/payouts/owed'));
+  }
+  payouts() {
+    return firstValueFrom(this.http.get<PayoutView[]>('/api/admin/payouts'));
+  }
+  payout(driverId: string, method: 'LINK' | 'MANUAL', reference: string | null) {
+    return firstValueFrom(this.http.post<PayoutView>('/api/admin/payouts', { driverId, method, reference }));
+  }
+  memberWallet(id: string) {
+    return firstValueFrom(this.http.get<WalletView>(`/api/admin/members/${encodeURIComponent(id)}/wallet`));
+  }
+  grantCredits(id: string, amountPaise: number, reason: string) {
+    return firstValueFrom(this.http.post<WalletView>(`/api/admin/members/${encodeURIComponent(id)}/credits`, { amountPaise, reason }));
   }
   verifications(status: 'PENDING' | 'APPROVED' | 'REJECTED') {
     return firstValueFrom(this.http.get<StaffIdCheck[]>('/api/admin/verifications', { params: new HttpParams().set('status', status) }));

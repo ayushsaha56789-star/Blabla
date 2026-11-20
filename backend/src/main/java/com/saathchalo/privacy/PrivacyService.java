@@ -81,6 +81,12 @@ public class PrivacyService {
 			throw ApiException.conflict("staff_account",
 					"Staff accounts can't be deleted here. Ask the owner to remove your staff access first.");
 		}
+		for (PersonalData section : sections) {
+			String blocker = section.leavingBlocker(me);
+			if (blocker != null) {
+				throw ApiException.conflict("cannot_leave_yet", blocker);
+			}
+		}
 		Commitments trips = rides.commitments(me);
 		if (trips.any()) {
 			throw ApiException.conflict("upcoming_trips", tripsMessage(trips))

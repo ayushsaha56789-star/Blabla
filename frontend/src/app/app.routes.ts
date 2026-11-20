@@ -86,6 +86,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/help/request-page').then((m) => m.RequestPage),
   },
   {
+    path: 'wallet',
+    title: 'Wallet · SaathChalo',
+    canActivate: [authGuard, featureGuard('payments')],
+    loadComponent: () => import('./features/wallet/wallet-page').then((m) => m.WalletPage),
+  },
+  {
     path: 'privacy-centre',
     title: 'Privacy centre · SaathChalo',
     canActivate: [authGuard],

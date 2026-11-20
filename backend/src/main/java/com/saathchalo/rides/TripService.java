@@ -117,7 +117,7 @@ public class TripService {
 		Long upcoming = jdbc.queryForObject("""
 				SELECT (SELECT count(*) FROM rides WHERE driver_id = ? AND status = 'SCHEDULED' AND departure_at > ?)
 				     + (SELECT count(*) FROM bookings b JOIN rides r ON r.id = b.ride_id
-				        WHERE b.passenger_id = ? AND b.status IN ('REQUESTED', 'CONFIRMED')
+				        WHERE b.passenger_id = ? AND b.status IN ('AWAITING_PAYMENT', 'REQUESTED', 'CONFIRMED')
 				          AND r.status = 'SCHEDULED' AND r.departure_at > ?)
 				""", Long.class, memberId, now, memberId, now);
 		return new TripsSummary(pending == null ? 0 : pending, upcoming == null ? 0 : upcoming);

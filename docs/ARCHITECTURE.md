@@ -80,7 +80,7 @@ Modules talk to each other only through each module's public service classes and
 | `privacy` | Data download, account deletion, legal contacts (consent records later) | 4 ✓ |
 | `files` | Storage, image processing, document encryption | 1 ✓, 4 ✓ |
 | `notifications` | In-app inbox, browser push, SMS, email, member preferences | 11 (Phase 4 has badges and SMS for SOS) |
-| `payments` | Razorpay orders, webhooks, refunds, payouts, ledger, credits | 5 |
+| `payments` | Razorpay orders, webhooks, refunds, payouts, ledger, credits | 5 ✓ |
 | `geo` | Place search and routes (OpenStreetMap), PostGIS helpers | 3 |
 
 **Business modules**:
@@ -220,11 +220,14 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
 - **Verification:** phone ✓ → email (6-digit code, stored only as a keyed hash) → ID. For the ID check the member uploads a photo of a driving licence, PAN, passport, voter ID or masked Aadhaar; the server re-encodes it (removing hidden location data) and stores it encrypted. Staff compare it with the profile in the console; every photo view is audited. Photos are deleted 30 days after the decision, and at once if a full Aadhaar number is visible. DigiLocker or a KYC provider can replace the manual check later.
 - **Policies:** terms, privacy policy, community guidelines and grievance officer pages in plain English, marked as drafts until a lawyer reviews them. Grievance contact details come from settings (`LEGAL_*`, `GRIEVANCE_*`).
 
-### 7.3 Payments and wallet (Phase 5)
+### 7.3 Payments and wallet (Phase 5, built)
 
-- Razorpay for UPI and cards. SaathChalo never sees card numbers.
-- Every payment, refund, commission and payout goes into a **double-entry ledger** that is matched against Razorpay every day.
-- Webhooks are verified by signature and processed only once.
+- Razorpay for UPI and cards, through its REST API and its own checkout window. SaathChalo never sees card numbers or UPI details. A pretend gateway (development and tests only, refused in any other profile) lets everything be tried without money. With `PAYMENTS_PROVIDER=none` online payments are simply unavailable and members pay drivers directly.
+- **Paying for a seat:** the booking is created as AWAITING_PAYMENT and holds its seats for 15 minutes (`app.rides.payment-hold`); the gateway order is created after the ride's lock is released. The checkout's signature (or the `payment.captured` webhook, whichever comes first) marks it paid; then the booking goes to the driver (or is confirmed with instant booking). Money that arrives after the hold ended is refunded at once.
+- **Afterwards** a job every minute settles finished bookings (the driver's share becomes their earnings), refunds declined, expired and cancelled ones by the rules in `app.payments.*`, gives back credits held by unfinished checkouts, and sends pending refunds (retried 5 times, then shown to staff).
+- Every payment, refund, credit, payout and fee goes into a **double-entry ledger** (accounts GATEWAY, BANK, ESCROW, CREDITS, EARNINGS, FEES, GOODWILL). Members' balances are kept in `wallets`, which can never go below zero. The console shows three checks: every journal balances, wallets match the ledger, held money matches open payments. A daily match against Razorpay's own reports comes with launch (Phase 11).
+- **Payouts:** a RazorpayX payout link (the driver chooses their own UPI ID or bank account on Razorpay's page), or a payment made by hand and recorded with its reference. Super admin only, with a fresh 2FA code.
+- Webhooks are verified by signature and processed only once (`payment_events`).
 - **SaathChalo credits** (referral rewards, refunds as credit) can be spent only inside the app. They can't be withdrawn or transferred, and they are never a prize for games.
 
 ### 7.4 Car rentals (Phase 6)
@@ -362,7 +365,7 @@ The table is the reference for that later work.
 | ID images | 30 days after the decision (at once if a full Aadhaar number shows) | Deleted; the decision is kept |
 | Help requests | Until the account is erased | Deleted |
 | Security logs | At least 1 year | Deleted |
-| Payments and invoices | As tax law requires (about 8 years) | Archived |
+| Payments, refunds, payouts and the ledger | As tax law requires (about 8 years); kept after an account is erased, pointing to the anonymised account | Archived |
 | Deleted accounts | 30-day grace period (logging in cancels) | Personal data erased or anonymised; sign-up details sealed for 180 days, then deleted |
 
 Backups: daily encrypted database backups plus point-in-time recovery in production, kept for 30 days, with a restore test every month.
@@ -416,7 +419,7 @@ frontend/src/app/
 | 2 ✓ | **Owner control centre**: super admin, staff roles, 2FA, feature switches, audit log, member management | Done |
 | 3 ✓ | **Carpooling**: vehicles, place search, publish/search/book rides, price cap | Done |
 | 4 ✓ | **Trust, safety and privacy**: chat, reviews, verification, SOS, trip sharing, reports, privacy centre, legal pages, help tickets | Done |
-| 5 | **Payments and wallet**: Razorpay, refunds, ledger, credits, payouts | 3 |
+| 5 ✓ | **Payments and wallet**: Razorpay, refunds, ledger, credits, payouts | Done |
 | 6 | **Car rentals**: self-drive and with driver | 5–6 |
 | 7 | **Driver partners**: licensed drivers register with their service areas; members hire a driver for their own car or a rental | 3–4 |
 | 8 | **Games**: chess and ludo (computer, friends, quick match, ride lobby), leaderboards | 4–6 |

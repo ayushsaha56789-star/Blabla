@@ -9,11 +9,12 @@ import { MaintenancePage, SuspendedPage } from './features/status-pages';
 import { Footer } from './layout/footer';
 import { Navbar } from './layout/navbar';
 import { Toasts } from './layout/toasts';
+import { PretendCheckout } from './shared/pretend-checkout';
 
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, Navbar, Footer, Toasts, MaintenancePage, SuspendedPage],
+  imports: [RouterOutlet, Navbar, Footer, Toasts, MaintenancePage, SuspendedPage, PretendCheckout],
   template: `
     @if (!inConsole()) {
       <a href="#main" (click)="skipToMain($event)" class="sr-only z-50 rounded-xl bg-brand-600 px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3">Skip to content</a>
@@ -33,6 +34,7 @@ import { Toasts } from './layout/toasts';
       <app-footer />
     }
     <app-toasts />
+    <app-pretend-checkout />
   `,
 })
 export class App {

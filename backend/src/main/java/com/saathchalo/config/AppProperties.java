@@ -2,9 +2,11 @@ package com.saathchalo.config;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -25,7 +27,8 @@ public record AppProperties(
 		@Valid @NotNull Staff staff,
 		@Valid @NotNull Rides rides,
 		@NotBlank String publicUrl,
-		Legal legal) {
+		Legal legal,
+		@Valid @NotNull Payments payments) {
 
 	public record Jwt(@NotBlank String secret, @NotBlank String issuer,
 			@NotNull Duration accessTokenTtl, @NotNull Duration refreshTokenTtl) {
@@ -62,7 +65,17 @@ public record AppProperties(
 	 * requests the driver hasn't answered expire after {@code requestTtl}.
 	 */
 	public record Rides(@Positive double suggestedPricePerKm, @Positive double maxPricePerKm, @Min(1) int minPrice,
-			@Min(1) int searchRadiusKm, @Min(1) int maxDaysAhead, @NotNull Duration requestTtl) {
+			@Min(1) int searchRadiusKm, @Min(1) int maxDaysAhead, @NotNull Duration requestTtl, @NotNull Duration paymentHold) {
+	}
+
+	/**
+	 * Online payments. {@code provider}: none (online payments off), fake (development and tests only) or razorpay.
+	 * Cancelling at least {@code fullRefundHours} before pickup gets everything back; later, the passenger gets
+	 * {@code lateCancelRefundPercent} of the seat price and the driver keeps the rest. Keys come from the environment.
+	 */
+	public record Payments(@NotBlank String provider, @PositiveOrZero @Max(30) double serviceFeePercent,
+			@Min(0) int fullRefundHours, @Min(0) @Max(100) int lateCancelRefundPercent, String razorpayKeyId,
+			String razorpayKeySecret, String razorpayWebhookSecret, String razorpayxAccountNumber) {
 	}
 
 	/** Who members can complain to, as the law asks us to publish. Blank values mean "not appointed yet". */

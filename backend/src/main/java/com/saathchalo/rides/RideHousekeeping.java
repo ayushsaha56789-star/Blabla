@@ -48,6 +48,14 @@ public class RideHousekeeping {
 				  AND (b.created_at < ? OR r.status <> 'SCHEDULED'
 				       OR r.departure_at + make_interval(mins => s.minutes_from_start) <= ?)
 				""", at, Timestamp.from(now.minus(config.requestTtl())), at);
+		// Online payments that didn't come through in time give their seats back.
+		expired += jdbc.update("""
+				UPDATE bookings b SET status = 'EXPIRED', decided_at = ?, cancelled_by = 'SYSTEM'
+				FROM rides r, ride_stops s
+				WHERE b.status = 'AWAITING_PAYMENT' AND r.id = b.ride_id AND s.ride_id = b.ride_id AND s.position = b.from_position
+				  AND (b.created_at < ? OR r.status <> 'SCHEDULED'
+				       OR r.departure_at + make_interval(mins => s.minutes_from_start) <= ?)
+				""", at, Timestamp.from(now.minus(config.paymentHold())), at);
 		Timestamp doneBefore = Timestamp.from(now.minus(COMPLETE_AFTER));
 		jdbc.update("""
 				UPDATE bookings b SET status = 'COMPLETED'

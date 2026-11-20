@@ -67,6 +67,20 @@ public class Booking {
 		this.createdAt = createdAt;
 	}
 
+	/** A booking paid online: it holds its seats until the payment comes through. */
+	public static Booking awaitingPayment(UUID rideId, UUID passengerId, int fromPosition, int toPosition, int seats,
+			int pricePerSeat, String message, Instant createdAt) {
+		Booking b = new Booking(rideId, passengerId, fromPosition, toPosition, seats, pricePerSeat, false, message, createdAt);
+		b.status = BookingStatus.AWAITING_PAYMENT;
+		return b;
+	}
+
+	/** The payment came through: the booking goes to the driver (or is confirmed straight away with instant booking). */
+	public void paid(boolean instant, Instant when) {
+		this.status = instant ? BookingStatus.CONFIRMED : BookingStatus.REQUESTED;
+		this.decidedAt = instant ? when : null;
+	}
+
 	public void decide(boolean accepted, Instant when) {
 		this.status = accepted ? BookingStatus.CONFIRMED : BookingStatus.DECLINED;
 		this.decidedAt = when;

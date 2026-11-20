@@ -3,6 +3,7 @@ import { Gender } from '../core/api.models';
 import { MemberCard, PassengerView, RideDetails, RideStatus } from '../core/rides.models';
 import { SupportCategory, SupportMessage } from '../core/support-api';
 import { DocumentType, RejectReason } from '../core/verification-api';
+import { RefundView } from '../core/payments-api';
 
 export interface StaffStatus {
   staff: boolean;
@@ -139,6 +140,47 @@ export interface SosRow {
 export interface AdminRideDetails {
   ride: RideDetails;
   bookings: PassengerView[];
+}
+
+/** Money in the console. Amounts are in paise. */
+export interface PaymentsSummary {
+  onlineReady: boolean;
+  gateway: string | null;
+  heldForTripsPaise: number;
+  owedToDriversPaise: number;
+  creditsOutstandingPaise: number;
+  feesEarnedPaise: number;
+  goodwillPaise: number;
+  refundsPending: number;
+  refundsFailed: number;
+  ledgerBalanced: boolean;
+  walletsMatch: boolean;
+  escrowMatches: boolean;
+}
+
+export interface AdminPaymentRow {
+  id: string;
+  bookingId: string;
+  payer: MemberCard;
+  driver: MemberCard;
+  route: string | null;
+  departureAt: string | null;
+  seatPaise: number;
+  feePaise: number;
+  creditsPaise: number;
+  onlinePaise: number;
+  gateway: string;
+  status: 'CREATED' | 'PAID' | 'EXPIRED';
+  outcome: 'SETTLED' | 'REFUNDED' | 'SPLIT' | null;
+  createdAt: string;
+  paidAt: string | null;
+  refunds: RefundView[];
+}
+
+export interface OwedRow {
+  driver: MemberCard;
+  earningsPaise: number;
+  lastPayoutAt: string | null;
 }
 
 export interface StaffIdCheck {

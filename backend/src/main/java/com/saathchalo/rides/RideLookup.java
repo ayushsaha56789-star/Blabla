@@ -71,6 +71,41 @@ public class RideLookup {
 		});
 	}
 
+	/**
+	 * What the payments module needs about a booking: who, how much, when, and how it ended. {@code decidedAt} is when
+	 * the seat was confirmed (or declined); null for requests nobody answered.
+	 */
+	public record BookingFacts(UUID bookingId, UUID rideId, UUID driverId, UUID passengerId, BookingStatus status,
+			int seats, int pricePerSeat, String fromName, String toName, Instant pickupAt, Instant decidedAt,
+			Instant cancelledAt, String cancelledBy, RideStatus rideStatus) {
+
+		public int total() {
+			return seats * pricePerSeat;
+		}
+	}
+
+	@Transactional(readOnly = true)
+	public Map<UUID, BookingFacts> bookingFacts(Collection<UUID> bookingIds) {
+		if (bookingIds.isEmpty()) {
+			return Map.of();
+		}
+		List<Booking> list = bookings.findAllById(bookingIds);
+		Map<UUID, Ride> byId = new LinkedHashMap<>();
+		rides.findWithStops(list.stream().map(Booking::getRideId).distinct().toList()).forEach(r -> byId.put(r.getId(), r));
+		Map<UUID, BookingFacts> out = new LinkedHashMap<>();
+		for (Booking b : list) {
+			Ride r = byId.get(b.getRideId());
+			if (r == null) {
+				continue;
+			}
+			out.put(b.getId(), new BookingFacts(b.getId(), r.getId(), r.getDriverId(), b.getPassengerId(), b.getStatus(),
+					b.getSeats(), b.getPricePerSeat(), r.getStops().get(b.getFromPosition()).getName(),
+					r.getStops().get(b.getToPosition()).getName(), r.timeAt(b.getFromPosition()), b.getDecidedAt(),
+					b.getCancelledAt(), b.getCancelledBy(), r.getStatus()));
+		}
+		return out;
+	}
+
 	/** A completed trip and the people this member travelled with: the passengers (as driver) or the driver. */
 	public record FinishedTrip(RideBrief ride, boolean asDriver, List<UUID> mates) {
 	}

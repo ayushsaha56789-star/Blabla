@@ -8,6 +8,7 @@ import { Avatar } from '../../shared/avatar';
 import { Icon } from '../../shared/icon';
 import { PhonePipe } from '../../shared/phone.pipe';
 import { AdminApi } from '../admin-api';
+import { MemberWallet } from '../ui/member-wallet';
 import { MemberDetailResponse } from '../admin.models';
 import { auditStyle, fullTime, timeAgo } from '../admin-ui';
 import { ConfirmationCancelled } from '../confirm-code.service';
@@ -16,7 +17,7 @@ import { ConsoleSessionService } from '../console-session.service';
 @Component({
   selector: 'app-admin-member-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, DatePipe, Avatar, Icon, PhonePipe],
+  imports: [RouterLink, DatePipe, Avatar, Icon, PhonePipe, MemberWallet],
   templateUrl: './member-detail.html',
 })
 export class MemberDetailPage {

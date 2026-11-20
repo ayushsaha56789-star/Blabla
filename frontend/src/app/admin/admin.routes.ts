@@ -57,6 +57,12 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/support-ticket').then((m) => m.SupportTicketPage),
       },
       {
+        path: 'payments',
+        title: 'Payments · Staff console',
+        canActivate: [permissionGuard('payments.refund')],
+        loadComponent: () => import('./pages/payments').then((m) => m.PaymentsPage),
+      },
+      {
         path: 'verifications',
         title: 'ID checks · Staff console',
         canActivate: [permissionGuard('verification.review')],

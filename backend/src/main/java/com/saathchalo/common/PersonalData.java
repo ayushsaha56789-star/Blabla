@@ -27,6 +27,11 @@ public interface PersonalData {
 	/** Removes or anonymises the member's data. Runs inside the erasure's transaction. */
 	void erase(UUID memberId);
 
+	/** A friendly reason the member can't delete their account yet (say, money still owed to them), or null. */
+	default String leavingBlocker(UUID memberId) {
+		return null;
+	}
+
 	/** Makes JDBC rows JSON-friendly: times as ISO-8601 text, ids as text, column order kept. */
 	static List<Map<String, Object>> rows(List<Map<String, Object>> raw) {
 		return raw.stream().map(PersonalData::row).toList();

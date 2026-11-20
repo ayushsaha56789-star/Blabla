@@ -12,8 +12,9 @@ Built with **Java 25 + Spring Boot 4** (backend) and **Angular 22 + Tailwind CSS
 | 2. Control centre | Super admin, staff roles, two-step verification, feature switches, member restrictions, audit log | ✅ Done |
 | 3. Carpooling | My cars, place search, offer/search/book rides, requests, My rides, price cap | ✅ Done |
 | 4. Trust & safety | Chat, reviews, SOS and trip sharing, reports and blocks, help centre, privacy centre, email and ID checks | ✅ Done |
-| 5. Payments | Pay online (Razorpay), wallet credits, refunds | Next |
-| 6–11 | Rentals, driver partners, games, Gen-Z features, promotions, launch | Planned — see the architecture doc |
+| 5. Payments | Pay online (Razorpay), refunds, SaathChalo credits, driver earnings and payouts, double-entry ledger | ✅ Done |
+| 6. Car rentals | Self-drive and with driver | Next |
+| 7–11 | Driver partners, games, Gen-Z features, promotions, launch | Planned — see the architecture doc |
 
 ## Run it locally
 
@@ -70,6 +71,16 @@ Rules you can change in `backend/src/main/resources/application.properties` (`ap
 - **Verification** (on your profile): confirm your email with a 6-digit code (in dev mode the code is shown on screen), and send a photo of an ID for staff to check. Approved members get an "ID verified" badge.
 - **Policies** (`/legal/terms`, `/legal/privacy`, `/legal/community`, `/legal/grievance`): plain-English drafts, marked as drafts until a lawyer has reviewed them (`LEGAL_DRAFT` in `frontend/src/app/features/legal/legal-docs.ts`).
 
+## Payments (try it)
+
+Online payments are **off** until you switch them on (console → Feature switches → **Online payments**, and **SaathChalo credits** if you want credits). In dev mode a **pretend checkout** opens instead of Razorpay: no real money moves.
+
+- **Pay now:** on a ride page choose **Pay now** (or **Pay the driver** for cash/UPI on the day). The seat is held for 15 minutes while you pay. With instant booking the seat is confirmed once paid; otherwise the driver accepts or declines (declined = everything back). An unfinished payment can be completed from the ride page.
+- **Refunds happen by themselves:** a declined or unanswered request, or a ride cancelled by the driver or staff, gives everything back. If you cancel at least 24 hours before pickup you get it all back; later, 50% of the seat price comes back and the driver keeps 50% (`app.payments.full-refund-hours`, `app.payments.late-cancel-refund-percent`).
+- **Drivers** get the seat money once the trip is over (**Wallet** page). Staff pay it out from the console (a Razorpay payout link, or record a payment made by hand).
+- **Credits** (Wallet page): from refunds, goodwill (staff can give them on a member's page) and later referrals. They pay for seats online and can't be withdrawn.
+- A service fee is possible (`app.payments.service-fee-percent`, default 0).
+
 ## The staff console (`/admin`)
 
 1. Log in with the number from step 2. You become **super admin** automatically (only when no super admin exists yet).
@@ -85,14 +96,15 @@ What you can do there:
 - **SOS alerts** — open alerts first (also shown as a red banner on the dashboard), with the member's location and a one-tap call; mark as handled and resolved.
 - **Reports** — members' reports with the reported message or review attached; acknowledge within 24 hours, resolve within 15 days (remove the content, take action, or dismiss).
 - **Help requests** — members' questions, oldest first; reply within 24 hours. Answered requests close by themselves after a quiet week.
+- **Payments** — what's held for upcoming trips, owed to drivers and given as credits, with three health checks (the ledger balances, wallets match it, held money matches open payments); every payment and refund (failed refunds can be retried); **Payouts** to drivers. A member's page shows their wallet and lets refund-handling staff give goodwill credits.
 - **ID checks** — compare the ID photo with the profile, then approve or reject with a reason. Every photo view is recorded; photos are stored encrypted and deleted 30 days after the decision (at once if a full Aadhaar number is visible).
 - **Staff** — add people (they must have logged in once) as Admin, Moderator or Support; change roles; reset two-step verification for a lost phone.
 - **Audit log** — every staff action, permanently recorded and hash-chained; "Verify integrity" proves nothing was changed.
 
 | Role | Can do |
 |---|---|
-| Super admin | Everything, including feature switches, staff and settings |
-| Admin | Members (incl. phone numbers), restrictions, ID checks, reports, SOS alerts, help requests, refunds, audit log |
+| Super admin | Everything, including feature switches, staff, settings and driver payouts |
+| Admin | Members (incl. phone numbers), restrictions, ID checks, reports, SOS alerts, help requests, payments and credits, audit log |
 | Moderator | Members, restrictions, ID checks, reports, SOS alerts, help requests |
 | Support | Members (incl. phone numbers), SOS alerts, help requests |
 
@@ -122,6 +134,7 @@ backend/                Spring Boot API, one module per feature (checked by Spri
     support/            help requests
     privacy/            data download, account deletion, legal contacts
     verification/       email codes, ID checks
+    payments/           checkout (Razorpay), refunds, credits, earnings, payouts, ledger
     admin/              staff console APIs
     files/ config/ common/
   src/main/resources/db/migration/   Flyway database migrations
@@ -151,4 +164,10 @@ Set these environment variables (do not use the `dev` profile):
 | `CORS_ALLOWED_ORIGINS` | Only if the web app is served from a different domain than the API |
 | `LEGAL_COMPANY`, `GRIEVANCE_OFFICER`, `GRIEVANCE_EMAIL`, `LEGAL_ADDRESS` | Shown on the Grievance officer page (the IT Rules 2021 ask for them) |
 
+| `PAYMENTS_PROVIDER` | `none` (default: online payments off) or `razorpay`. (`fake` works only in development and tests.) |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | From the Razorpay dashboard (required with `razorpay`) |
+| `RAZORPAYX_ACCOUNT_NUMBER` | Optional: lets staff send drivers payout links (RazorpayX). Without it, payouts are recorded by hand |
+
 A real SMS provider (MSG91 or Twilio) and a real email provider replace the development console senders before launch (`app.sms.provider`, `app.email.provider`).
+
+**Razorpay set-up:** finish Razorpay's business verification (KYC); turn on **automatic capture**; add a webhook to `https://<your-site>/api/payments/webhook` with the secret above and the events `payment.captured`, `order.paid`, `refund.processed`, `refund.failed` (and `payout_link.*` with RazorpayX). The site's Content Security Policy must allow `https://checkout.razorpay.com` (script) and `https://api.razorpay.com` (frame).

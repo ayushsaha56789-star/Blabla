@@ -77,9 +77,9 @@ public class LeavingMembers {
 			}
 		}
 		bookings.findByPassengerIdOrderByCreatedAtDesc(memberId).stream()
-			.filter(b -> b.getStatus() == BookingStatus.REQUESTED)
+			.filter(b -> b.getStatus() == BookingStatus.REQUESTED || b.getStatus() == BookingStatus.AWAITING_PAYMENT)
 			.forEach(b -> bookings.lockById(b.getId())
-				.filter(fresh -> fresh.getStatus() == BookingStatus.REQUESTED)
+				.filter(fresh -> fresh.getStatus() == BookingStatus.REQUESTED || fresh.getStatus() == BookingStatus.AWAITING_PAYMENT)
 				.ifPresent(fresh -> fresh.cancel("PASSENGER", now)));
 	}
 

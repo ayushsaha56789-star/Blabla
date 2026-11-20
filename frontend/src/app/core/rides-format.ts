@@ -42,6 +42,8 @@ export interface StatusLabel {
 /** How a booking's state reads to the passenger. */
 export function bookingStatus(status: BookingStatus, cancelledBy: string | null = null): StatusLabel {
   switch (status) {
+    case 'AWAITING_PAYMENT':
+      return { text: 'Waiting for payment', tone: 'warning' };
     case 'CONFIRMED':
       return { text: 'Seat confirmed', tone: 'success' };
     case 'REQUESTED':
