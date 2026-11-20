@@ -57,6 +57,12 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/support-ticket').then((m) => m.SupportTicketPage),
       },
       {
+        path: 'rentals',
+        title: 'Rentals · Staff console',
+        canActivate: [permissionGuard('rentals.manage')],
+        loadComponent: () => import('./pages/rentals').then((m) => m.RentalsAdminPage),
+      },
+      {
         path: 'payments',
         title: 'Payments · Staff console',
         canActivate: [permissionGuard('payments.refund')],

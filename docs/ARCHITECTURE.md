@@ -88,7 +88,7 @@ Modules talk to each other only through each module's public service classes and
 | Module | Job | Phase |
 |---|---|---|
 | `user` | Profiles and preferences | 1 ✓ |
-| `verification` | Email codes and ID checks (driving licence and vehicle papers in Phases 6–7) | 4 ✓ |
+| `verification` | Email codes, ID checks and driving-licence checks (car papers are checked with the rental listing) | 4 ✓ 6 ✓ |
 | `vehicles` | Cars registered by members, for carpooling and rentals | 3 |
 | `rides` | Publish and search rides | 3 |
 | `bookings` | Seat requests, confirmations, cancellations | 3 |
@@ -97,7 +97,7 @@ Modules talk to each other only through each module's public service classes and
 | `safety` | Emergency contacts, SOS, trip sharing | 4 ✓ |
 | `moderation` | Reports and the moderation queue (blocking lives in `user`) | 4 ✓ |
 | `support` | Help requests and the grievance workflow | 4 ✓ |
-| `rentals` | Rental listings (self-drive or with driver), calendar, bookings, deposits, pickup/return checks, disputes | 6 |
+| `rentals` | Rental listings (self-drive or with driver), calendar, bookings, deposits, pickup/return checks, disputes | 6 ✓ |
 | `drivers` | Driver partners: licence check, service areas, availability, rates, hire-a-driver bookings | 7 |
 | `games` | Chess, ludo, rooms, matchmaking, ratings, leaderboards | 8 |
 | `rewards` | XP, levels, badges, streaks, challenges, referrals | 9 |
@@ -177,7 +177,7 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
 | Core | `signups`, `rides.publish`, `rides.booking`, `rides.ladies_only`, `maintenance_mode` |
 | Payments | `payments.online`, `payments.cash`, `wallet.credits` |
 | Trust | `chat`, `reviews`, `safety.sos`, `safety.trip_share` |
-| Rentals and drivers | `rentals`, `rentals.self_drive`, `rentals.with_driver`, `rentals.instant_book`, `drivers.register`, `drivers.hire` |
+| Rentals and drivers | `rentals`, `rentals.self_drive`, `rentals.with_driver`, `rentals.instant_book`, `rentals.unverified`, `drivers.register`, `drivers.hire` |
 | Games | `games`, `games.chess`, `games.ludo`, `games.vs_computer`, `games.online`, `games.ride_lobby`, `games.leaderboards` |
 | Social | `rewards`, `rewards.referrals`, `community.squads`, `community.events`, `vibe_match` |
 | Promotions | `promotions`, `promotions.self_serve`, `promotions.in_search`, `promotions.in_games`, plus the setting "free promotions until" for the launch offer |
@@ -230,21 +230,24 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
 - Webhooks are verified by signature and processed only once (`payment_events`).
 - **SaathChalo credits** (referral rewards, refunds as credit) can be spent only inside the app. They can't be withdrawn or transferred, and they are never a prize for games.
 
-### 7.4 Car rentals (Phase 6)
+### 7.4 Car rentals (Phase 6, built)
 
-- Owners list a registered vehicle with photos, price per hour or day, kilometres included, the extra-km charge, fuel rule, security deposit, pickup area, an availability calendar and house rules.
-- Two kinds of listing:
+- Owners list one of their registered cars with photos, a price per day (and optionally per hour, minimum 4 hours, never more than the day price), kilometres included per day, the extra-km price, the fuel rule, a refundable deposit, the pickup area (a place plus an area name everyone sees; the exact address only for a confirmed renter), blocked dates and house rules.
+- Two kinds of rental, either or both per listing:
   - **Self-drive**: the renter drives.
-  - **With driver**: the owner drives, or picks a registered driver partner (section 7.5). The price then includes the driver's charges, plus a daily allowance on outstation trips.
-- **Documents.** Owners upload registration, permit and insurance, and staff check them; checked listings get a "Verified" badge. Whether unchecked listings may go live is a super admin setting.
-- Self-drive renters need a verified driving licence and a minimum age set by the owner (21 by default).
-- The database itself prevents double-booking, through an exclusion constraint on vehicle + time range.
-- **Pickup and return checks.** Both sides take time-stamped photos plus odometer and fuel readings in the app. These settle damage disputes.
-- **Deposit.** Held on the card where the payment method allows it; otherwise charged and refunded after the return. Damage and extra kilometres are deducted only with photo evidence, and disputes go to staff.
+  - **With driver**: the owner drives. Picking a registered driver partner instead comes with Phase 7 (section 7.5).
+- **Documents.** Owners upload the RC and insurance (a permit if the car has one). They are stored encrypted; only staff with `rentals.manage` see them, and each view is audited. Approved listings get a "Documents checked" badge. Changing a document sends the listing back for checking. The switch `rentals.unverified` lets listings go live without the check.
+- Self-drive renters need an approved driving licence (sent through the ID-check flow) and the owner's minimum age (21 by default).
+- The database itself prevents double-booking: an exclusion constraint on listing + time range covers every booking that holds the car (accepted, paid, on the road, returned, disputed). Searches also skip blocked dates.
+- **Rules** (`RentalRules`): rentals of 4 hours to 30 days, up to 90 days ahead; the owner answers within 24 hours; an accepted online booking must be paid within 24 hours; the renter answers the return charges within 48 hours, or the rental completes by itself.
+- **Pickup and return checks.** The owner records the odometer, fuel level and photos at pickup (from 3 hours before the start) and at the return; the renter may add their own pickup photos. The photos are kept encrypted for 90 days after the rental ends, then deleted; the readings stay.
+- **Charges.** At the return the owner can keep part of the deposit: extra kilometres (worked out from the odometer) plus other charges with a note, never more than the deposit. The renter accepts or disputes; staff settle a dispute (with a fresh 2FA code), and both sides see the decision.
+- **Money.** Payments were generalised in this phase: a payment belongs to a "kind" (RIDE or RENTAL), and each kind implements `payments.PayableKind` (what happens when it's paid, and who gets what when it closes). Online, the renter pays rent + deposit after the owner accepts; the money waits in escrow; at the end the owner earns the rent and the agreed charges and the rest of the deposit is refunded. Cancelling always returns the deposit; a late renter cancellation keeps part of the rent by the same `app.payments.*` settings as rides. Without online payments, rent and deposit are paid to the owner at pickup.
 
 ```
- REQUESTED ─► ACCEPTED ─► PAID (deposit held) ─► PICKED UP (photo check) ─► RETURNED (photo check) ─► COMPLETED
-     └─► DECLINED / EXPIRED     └─► CANCELLED (refund by policy)                 └─► DISPUTE ─► settled by staff
+ REQUESTED ─► ACCEPTED ─► PAID (online) ─► PICKED UP (photo check) ─► RETURNED (photo check) ─► COMPLETED
+     ├─► DECLINED / EXPIRED  └─► CANCELLED (deposit back; rent by policy)   └─► DISPUTED ─► settled by staff
+     └─► instant booking skips the owner's answer
 ```
 
 ### 7.5 Driver partners and hire-a-driver (Phase 7)
@@ -363,6 +366,8 @@ The table is the reference for that later work.
 | Live location from trip sharing | Until the link ends, a day after the trip | Deleted |
 | SOS locations | 90 days | Cleared; the alert record stays |
 | ID images | 30 days after the decision (at once if a full Aadhaar number shows) | Deleted; the decision is kept |
+| Car documents (RC, insurance, permit) | While the listing exists | Deleted when the listing is removed or the account erased |
+| Pickup and return photos | 90 days after the rental ends | Deleted; the readings (odometer, fuel) are kept |
 | Help requests | Until the account is erased | Deleted |
 | Security logs | At least 1 year | Deleted |
 | Payments, refunds, payouts and the ledger | As tax law requires (about 8 years); kept after an account is erased, pointing to the anonymised account | Archived |
@@ -420,7 +425,7 @@ frontend/src/app/
 | 3 ✓ | **Carpooling**: vehicles, place search, publish/search/book rides, price cap | Done |
 | 4 ✓ | **Trust, safety and privacy**: chat, reviews, verification, SOS, trip sharing, reports, privacy centre, legal pages, help tickets | Done |
 | 5 ✓ | **Payments and wallet**: Razorpay, refunds, ledger, credits, payouts | Done |
-| 6 | **Car rentals**: self-drive and with driver | 5–6 |
+| 6 ✓ | **Car rentals**: self-drive and with driver | Done |
 | 7 | **Driver partners**: licensed drivers register with their service areas; members hire a driver for their own car or a rental | 3–4 |
 | 8 | **Games**: chess and ludo (computer, friends, quick match, ride lobby), leaderboards | 4–6 |
 | 9 | **Gen-Z layer**: XP, badges, streaks, referrals, CO₂ card, squads, events, vibe match | 3–5 |

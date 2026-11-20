@@ -27,4 +27,6 @@ public final class Perm {
 	public static final String PAYMENTS_REFUND = "hasAuthority('PERM_payments.refund')";
 
 	public static final String PAYOUTS_APPROVE = "hasAuthority('PERM_payouts.approve')";
+
+	public static final String RENTALS_MANAGE = "hasAuthority('PERM_rentals.manage')";
 }

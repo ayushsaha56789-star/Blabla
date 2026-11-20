@@ -228,6 +228,8 @@ export interface Dashboard {
   overdueReports: number;
   ticketsWaiting: number;
   idChecksWaiting: number;
+  rentalsToCheck: number;
+  rentalDisputes: number;
   staffCount: number;
   featuresOn: number;
   featuresTotal: number;

@@ -16,6 +16,8 @@ public interface IdCheckRepository extends JpaRepository<IdCheck, UUID> {
 
 	boolean existsByUserIdAndStatus(UUID userId, String status);
 
+	boolean existsByUserIdAndDocumentTypeAndStatus(UUID userId, String documentType, String status);
+
 	long countByUserIdAndSubmittedAtAfter(UUID userId, Instant after);
 
 	long countByStatus(String status);

@@ -25,8 +25,6 @@ import com.saathchalo.payments.internal.Payout;
 import com.saathchalo.payments.internal.PayoutRepository;
 import com.saathchalo.payments.internal.Refund;
 import com.saathchalo.payments.internal.RefundRepository;
-import com.saathchalo.rides.RideLookup;
-import com.saathchalo.rides.RideLookup.BookingFacts;
 import com.saathchalo.user.MemberProfiles;
 import com.saathchalo.user.MemberProfiles.MemberCard;
 import java.sql.Timestamp;
@@ -59,7 +57,7 @@ public class WalletService {
 
 	private final MemberProfiles members;
 
-	private final RideLookup rides;
+	private final Map<String, PayableKind> kinds;
 
 	private final PaymentsConfig.Gateways gateways;
 
@@ -70,14 +68,14 @@ public class WalletService {
 	private final Clock clock;
 
 	public WalletService(Ledger ledger, PaymentRepository payments, RefundRepository refunds, PayoutRepository payouts,
-			MemberProfiles members, RideLookup rides, PaymentsConfig.Gateways gateways, AuditService audit, JdbcTemplate jdbc,
-			Clock clock) {
+			MemberProfiles members, List<PayableKind> kinds, PaymentsConfig.Gateways gateways, AuditService audit,
+			JdbcTemplate jdbc, Clock clock) {
 		this.ledger = ledger;
 		this.payments = payments;
 		this.refunds = refunds;
 		this.payouts = payouts;
 		this.members = members;
-		this.rides = rides;
+		this.kinds = kinds.stream().collect(Collectors.toMap(PayableKind::kind, k -> k));
 		this.gateways = gateways;
 		this.audit = audit;
 		this.jdbc = jdbc;
@@ -176,7 +174,8 @@ public class WalletService {
 		Map<Account, Long> b = ledger.balances();
 		Long expectedEscrow = jdbc.queryForObject("""
 				SELECT coalesce(sum(CASE WHEN status = 'CREATED' THEN credits_paise
-				                         WHEN status = 'PAID' AND outcome IS NULL THEN seat_paise + fee_paise ELSE 0 END), 0)
+				                         WHEN status = 'PAID' AND outcome IS NULL THEN seat_paise + fee_paise + deposit_paise
+				                         ELSE 0 END), 0)
 				FROM payments""", Long.class);
 		return new AdminSummary(gateways.active().isPresent(), gateways.active().map(PaymentGateway::name).orElse(null),
 				b.get(Account.ESCROW), b.get(Account.EARNINGS), b.get(Account.CREDITS), b.get(Account.FEES), b.get(Account.GOODWILL),
@@ -202,16 +201,16 @@ public class WalletService {
 			people.add(p.getDriverId());
 		});
 		Map<UUID, MemberCard> cards = members.cards(people);
-		Map<UUID, BookingFacts> facts = rides.bookingFacts(list.stream().map(Payment::getBookingId).toList());
 		Map<UUID, List<RefundView>> refundViews = refunds.findByPaymentIdInOrderByCreatedAtAsc(list.stream().map(Payment::getId).toList())
 			.stream()
 			.collect(Collectors.groupingBy(Refund::getPaymentId, Collectors.mapping(PaymentService::refundView, Collectors.toList())));
 		return list.stream().map(p -> {
-			BookingFacts f = facts.get(p.getBookingId());
-			return new AdminPaymentRow(p.getId(), p.getBookingId(), cards.getOrDefault(p.getPayerId(), MemberProfiles.deleted()),
-					cards.getOrDefault(p.getDriverId(), MemberProfiles.deleted()), f == null ? null : f.fromName() + " → " + f.toName(),
-					f == null ? null : f.pickupAt(), p.getSeatPaise(), p.getFeePaise(), p.getCreditsPaise(), p.getOnlinePaise(),
-					p.getGateway(), p.getStatus(), p.getOutcome(), p.getCreatedAt(), p.getPaidAt(),
+			PayableKind kind = kinds.get(p.getKind());
+			PayableKind.Description d = kind == null ? null : kind.describe(p.getBookingId()).orElse(null);
+			return new AdminPaymentRow(p.getId(), p.getBookingId(), p.getKind(), cards.getOrDefault(p.getPayerId(), MemberProfiles.deleted()),
+					cards.getOrDefault(p.getDriverId(), MemberProfiles.deleted()), d == null ? null : d.route(),
+					d == null ? null : d.startsAt(), p.getSeatPaise(), p.getFeePaise(), p.getDepositPaise(), p.getCreditsPaise(),
+					p.getOnlinePaise(), p.getGateway(), p.getStatus(), p.getOutcome(), p.getCreatedAt(), p.getPaidAt(),
 					refundViews.getOrDefault(p.getId(), List.of()));
 		}).toList();
 	}

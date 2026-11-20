@@ -43,7 +43,7 @@ class PaymentsPersonalData implements PersonalData {
 		out.put("creditsPaise", ledger.credits(memberId));
 		out.put("earningsPaise", ledger.earnings(memberId));
 		out.put("payments", PersonalData.rows(jdbc.queryForList("""
-				SELECT booking_id AS "bookingId", seat_paise AS "seatPaise", fee_paise AS "feePaise",
+				SELECT kind, booking_id AS "itemId", seat_paise AS "pricePaise", fee_paise AS "feePaise", deposit_paise AS "depositPaise",
 				       credits_paise AS "creditsPaise", online_paise AS "onlinePaise", status, outcome,
 				       created_at AS created, paid_at AS paid
 				FROM payments WHERE payer_id = ? ORDER BY created_at DESC""", memberId)));

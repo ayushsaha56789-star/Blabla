@@ -33,9 +33,9 @@ public final class PaymentDtos {
 	}
 
 	/** What the checkout needs. {@code orderId} is null when credits paid it all (then {@code status} is PAID). */
-	public record CheckoutView(UUID paymentId, UUID bookingId, String status, long seatPaise, long feePaise,
-			long creditsPaise, long onlinePaise, String gateway, String keyId, String orderId, Instant holdUntil,
-			String description, Prefill prefill) {
+	public record CheckoutView(UUID paymentId, UUID bookingId, String kind, String status, long seatPaise, long feePaise,
+			long depositPaise, long creditsPaise, long onlinePaise, String gateway, String keyId, String orderId,
+			Instant holdUntil, String description, Prefill prefill) {
 	}
 
 	public record Prefill(String name, String email, String contact) {
@@ -50,9 +50,9 @@ public final class PaymentDtos {
 	}
 
 	/** {@code seatHeld}: false when the money came too late to keep the seat (it's then refunded in full). */
-	public record PaymentView(UUID id, UUID bookingId, String status, String outcome, long seatPaise, long feePaise,
-			long creditsPaise, long onlinePaise, String gateway, Instant holdUntil, Instant paidAt, boolean seatHeld,
-			List<RefundView> refunds) {
+	public record PaymentView(UUID id, UUID bookingId, String kind, String status, String outcome, long seatPaise,
+			long feePaise, long depositPaise, long creditsPaise, long onlinePaise, String gateway, Instant holdUntil,
+			Instant paidAt, boolean seatHeld, List<RefundView> refunds) {
 	}
 
 	/** What cancelling now would give back. */
@@ -75,9 +75,9 @@ public final class PaymentDtos {
 			boolean ledgerBalanced, boolean walletsMatch, boolean escrowMatches) {
 	}
 
-	public record AdminPaymentRow(UUID id, UUID bookingId, MemberCard payer, MemberCard driver, String route,
-			Instant departureAt, long seatPaise, long feePaise, long creditsPaise, long onlinePaise, String gateway,
-			String status, String outcome, Instant createdAt, Instant paidAt, List<RefundView> refunds) {
+	public record AdminPaymentRow(UUID id, UUID bookingId, String kind, MemberCard payer, MemberCard driver, String route,
+			Instant departureAt, long seatPaise, long feePaise, long depositPaise, long creditsPaise, long onlinePaise,
+			String gateway, String status, String outcome, Instant createdAt, Instant paidAt, List<RefundView> refunds) {
 	}
 
 	public record OwedRow(MemberCard driver, long earningsPaise, Instant lastPayoutAt) {

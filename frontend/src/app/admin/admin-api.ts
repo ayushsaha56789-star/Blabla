@@ -30,6 +30,7 @@ import {
   TotpSetup,
 } from './admin.models';
 import { PayoutView, WalletView } from '../core/payments-api';
+import { AdminListingRow, RentalView } from '../core/rentals-api';
 
 /** Calls to the staff console API. Console tokens and 2FA confirmations are added by adminInterceptor. */
 @Injectable({ providedIn: 'root' })
@@ -145,6 +146,24 @@ export class AdminApi {
   }
   cancelRide(id: string, reason: string) {
     return firstValueFrom(this.http.post<AdminRideDetails>(`/api/admin/rides/${encodeURIComponent(id)}/cancel`, { reason }));
+  }
+  rentalListings(status: 'IN_REVIEW' | 'ALL') {
+    return firstValueFrom(this.http.get<AdminListingRow[]>('/api/admin/rentals/listings', { params: new HttpParams().set('status', status) }));
+  }
+  approveListing(id: string) {
+    return firstValueFrom(this.http.post<AdminListingRow>(`/api/admin/rentals/listings/${encodeURIComponent(id)}/approve`, null));
+  }
+  rejectListing(id: string, note: string) {
+    return firstValueFrom(this.http.post<AdminListingRow>(`/api/admin/rentals/listings/${encodeURIComponent(id)}/reject`, { note }));
+  }
+  rentalBookings(filter: 'all' | 'disputes') {
+    return firstValueFrom(this.http.get<RentalView[]>('/api/admin/rentals/bookings', { params: new HttpParams().set('filter', filter) }));
+  }
+  resolveRental(id: string, extraCharges: number, resolution: string) {
+    return firstValueFrom(this.http.post<RentalView>(`/api/admin/rentals/bookings/${encodeURIComponent(id)}/resolve`, { extraCharges, resolution }));
+  }
+  cancelRental(id: string) {
+    return firstValueFrom(this.http.post<RentalView>(`/api/admin/rentals/bookings/${encodeURIComponent(id)}/cancel`, null));
   }
   paymentsSummary() {
     return firstValueFrom(this.http.get<PaymentsSummary>('/api/admin/payments/summary'));

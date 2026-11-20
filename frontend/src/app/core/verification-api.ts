@@ -40,6 +40,8 @@ export interface VerificationStatus {
   email: string | null;
   emailVerified: boolean;
   idVerified: boolean;
+  /** An approved driving licence (self-drive rentals need one). */
+  licenceVerified: boolean;
   latestIdCheck: IdCheckView | null;
 }
 

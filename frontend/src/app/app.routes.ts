@@ -109,8 +109,44 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadChildren: () => import('./admin/admin.routes').then((m) => m.ADMIN_ROUTES),
   },
+  {
+    path: 'rentals',
+    title: 'Rent a car · SaathChalo',
+    canActivate: [featureGuard('rentals')],
+    loadComponent: () => import('./features/rentals/rentals-page').then((m) => m.RentalsPage),
+  },
+  {
+    path: 'rentals/mine',
+    title: 'My rentals · SaathChalo',
+    canActivate: [authGuard, featureGuard('rentals')],
+    loadComponent: () => import('./features/rentals/my-rentals-page').then((m) => m.MyRentalsPage),
+  },
+  {
+    path: 'rentals/new',
+    title: 'List a car · SaathChalo',
+    canActivate: [authGuard, featureGuard('rentals'), profileCompleteGuard],
+    loadComponent: () => import('./features/rentals/listing-editor-page').then((m) => m.ListingEditorPage),
+  },
+  {
+    path: 'rentals/listings/:id',
+    title: 'Your car for rent · SaathChalo',
+    canActivate: [authGuard, featureGuard('rentals')],
+    loadComponent: () => import('./features/rentals/listing-editor-page').then((m) => m.ListingEditorPage),
+  },
+  {
+    path: 'rentals/bookings/:id',
+    title: 'Rental · SaathChalo',
+    canActivate: [authGuard, featureGuard('rentals')],
+    loadComponent: () => import('./features/rentals/rental-page').then((m) => m.RentalPage),
+  },
+  {
+    path: 'rentals/:id',
+    title: 'Car for rent · SaathChalo',
+    canActivate: [featureGuard('rentals')],
+    loadComponent: () => import('./features/rentals/listing-page').then((m) => m.ListingPage),
+  },
   // "Coming soon" pages for areas the owner has switched on ahead of launch.
-  ...FEATURE_PAGES.map((p) => ({
+  ...FEATURE_PAGES.filter((p) => !p.built).map((p) => ({
     path: p.path.slice(1),
     title: `${p.label} · SaathChalo`,
     canActivate: [featureGuard(p.key)],

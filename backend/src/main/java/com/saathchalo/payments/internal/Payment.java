@@ -9,7 +9,11 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Paying for one booking, partly or wholly online and/or with SaathChalo credits. Amounts in paise. */
+/**
+ * Paying for one thing (a ride seat or a rental: {@code kind}), partly or wholly online and/or with SaathChalo credits.
+ * {@code bookingId} is the item paid for and {@code driverId} the person paid (the driver or the car's owner). Amounts in
+ * paise; the deposit is refundable.
+ */
 @Entity
 @Table(name = "payments")
 public class Payment {
@@ -34,6 +38,9 @@ public class Payment {
 	private UUID id;
 
 	@Column(nullable = false, updatable = false)
+	private String kind = "RIDE";
+
+	@Column(nullable = false, updatable = false)
 	private UUID bookingId;
 
 	@Column(nullable = false, updatable = false)
@@ -45,6 +52,8 @@ public class Payment {
 	private long seatPaise;
 
 	private long feePaise;
+
+	private long depositPaise;
 
 	private long creditsPaise;
 
@@ -75,15 +84,17 @@ public class Payment {
 	protected Payment() {
 	}
 
-	public Payment(UUID bookingId, UUID payerId, UUID driverId, long seatPaise, long feePaise, long creditsPaise,
-			String gateway, Instant now, Instant holdUntil) {
+	public Payment(String kind, UUID bookingId, UUID payerId, UUID driverId, long seatPaise, long feePaise, long depositPaise,
+			long creditsPaise, String gateway, Instant now, Instant holdUntil) {
+		this.kind = kind;
+		this.depositPaise = depositPaise;
 		this.bookingId = bookingId;
 		this.payerId = payerId;
 		this.driverId = driverId;
 		this.seatPaise = seatPaise;
 		this.feePaise = feePaise;
 		this.creditsPaise = creditsPaise;
-		this.onlinePaise = seatPaise + feePaise - creditsPaise;
+		this.onlinePaise = seatPaise + feePaise + depositPaise - creditsPaise;
 		this.gateway = gateway;
 		this.createdAt = now;
 		this.holdUntil = holdUntil;
@@ -110,7 +121,7 @@ public class Payment {
 	}
 
 	public long total() {
-		return seatPaise + feePaise;
+		return seatPaise + feePaise + depositPaise;
 	}
 
 	public boolean isOpen() {
@@ -118,6 +129,8 @@ public class Payment {
 	}
 
 	public UUID getId() { return id; }
+	public String getKind() { return kind; }
+	public long getDepositPaise() { return depositPaise; }
 	public UUID getBookingId() { return bookingId; }
 	public UUID getPayerId() { return payerId; }
 	public UUID getDriverId() { return driverId; }

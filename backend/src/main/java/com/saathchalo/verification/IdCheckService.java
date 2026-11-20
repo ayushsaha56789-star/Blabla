@@ -74,7 +74,7 @@ public class IdCheckService {
 		MeResponse profile = users.me(me);
 		IdCheckView latest = checks.findFirstByUserIdOrderBySubmittedAtDesc(me).map(IdCheckService::view).orElse(null);
 		return new VerificationStatus(profile.phoneVerified(), Masking.email(profile.email()), profile.emailVerified(),
-				profile.idVerified(), latest);
+				profile.idVerified(), licenceVerified(me), latest);
 	}
 
 	@Transactional
@@ -83,7 +83,9 @@ public class IdCheckService {
 			throw ApiException.badRequest("document_type_missing", "Choose which ID this is.");
 		}
 		MeResponse profile = users.me(me);
-		if (profile.idVerified()) {
+		// An ID-verified member can still add a driving licence (self-drive rentals need one).
+		boolean wantsLicence = type == DocumentType.DRIVING_LICENCE && !licenceVerified(me);
+		if (profile.idVerified() && !wantsLicence) {
 			throw ApiException.conflict("already_verified", "Your ID is already verified.");
 		}
 		if (profile.firstName() == null || profile.firstName().isBlank()) {
@@ -100,6 +102,12 @@ public class IdCheckService {
 		}
 		String file = vault.store(photo);
 		return view(checks.save(new IdCheck(me, type.name(), file, now)));
+	}
+
+	/** Whether staff approved a driving licence for this member. */
+	@Transactional(readOnly = true)
+	public boolean licenceVerified(UUID memberId) {
+		return checks.existsByUserIdAndDocumentTypeAndStatus(memberId, DocumentType.DRIVING_LICENCE.name(), IdCheck.APPROVED);
 	}
 
 	// ----- Staff -----

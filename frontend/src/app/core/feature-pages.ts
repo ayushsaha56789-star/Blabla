@@ -12,6 +12,8 @@ export interface FeaturePage {
   tagline: string;
   points: string[];
   gradient: string;
+  /** Built: the menu links to the real pages instead of a "coming soon" page. */
+  built?: boolean;
 }
 
 export const FEATURE_PAGES: readonly FeaturePage[] = [
@@ -32,6 +34,7 @@ export const FEATURE_PAGES: readonly FeaturePage[] = [
   {
     key: 'rentals',
     path: '/rentals',
+    built: true,
     label: 'Rent a car',
     icon: 'car',
     tagline: 'Self-drive, or with a driver — from owners near you.',

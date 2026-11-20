@@ -113,6 +113,34 @@ import { Icon } from '../../shared/icon';
               }
             </li>
           }
+
+          @if (features.isOn('rentals') && features.isOn('verification.id') && s.idVerified) {
+            <li class="py-4">
+              <div class="flex flex-wrap items-center gap-3">
+                <app-icon name="steering" [size]="20" class="shrink-0 text-slate-400" />
+                <span class="min-w-0 flex-1"><span class="block font-semibold">Driving licence</span>
+                  <span class="block text-xs text-slate-500 dark:text-slate-400">Needed to rent a car for self-drive</span></span>
+                @if (s.licenceVerified) {
+                  <span class="badge badge-success"><app-icon name="checkCircle" [size]="14" /> Verified</span>
+                } @else if (s.latestIdCheck?.status === 'PENDING' && s.latestIdCheck?.documentType === 'DRIVING_LICENCE') {
+                  <span class="badge badge-warning"><app-icon name="clock" [size]="14" /> Checking</span>
+                } @else if (!licenceForm()) {
+                  <button type="button" class="btn btn-secondary btn-sm" (click)="openLicence()">Add licence</button>
+                }
+              </div>
+              @if (licenceForm() && !s.licenceVerified) {
+                <form class="mt-3 space-y-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/50" (submit)="sendId($event)">
+                  <label class="block text-sm"><span class="label">Photo of the front of your licence</span>
+                    <input type="file" accept="image/jpeg,image/png" capture="environment" class="input py-2 text-sm" (change)="pick($event)" /></label>
+                  @if (preview(); as url) { <img [src]="url" alt="Your licence photo" class="max-h-40 rounded-xl border border-slate-200 object-contain dark:border-slate-700" /> }
+                  <div class="flex justify-end gap-2">
+                    <button type="button" class="btn btn-ghost btn-sm" (click)="licenceForm.set(false)">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm" [disabled]="busy() || !photo()">{{ busy() ? 'Sending…' : 'Send for checking' }}</button>
+                  </div>
+                </form>
+              }
+            </li>
+          }
         </ul>
       } @else if (loadError()) {
         <p class="mt-5 text-sm text-rose-600 dark:text-rose-400" role="alert">{{ loadError() }}</p>
@@ -142,6 +170,7 @@ export class VerificationCard implements OnDestroy {
   protected readonly docType = signal<DocumentType | null>(null);
   protected readonly photo = signal<Blob | null>(null);
   protected readonly preview = signal<string | null>(null);
+  protected readonly licenceForm = signal(false);
   private timer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
@@ -152,6 +181,12 @@ export class VerificationCard implements OnDestroy {
       void me?.emailVerified;
       untracked(() => void this.load());
     });
+  }
+
+  /** A member whose ID is verified with another document adds their driving licence. */
+  protected openLicence(): void {
+    this.docType.set('DRIVING_LICENCE');
+    this.licenceForm.set(true);
   }
 
   ngOnDestroy(): void {
@@ -230,7 +265,8 @@ export class VerificationCard implements OnDestroy {
       const url = this.preview();
       if (url) URL.revokeObjectURL(url);
       this.preview.set(null);
-      this.toast.success("Thanks! We'll check your ID, usually within a day.");
+      this.licenceForm.set(false);
+      this.toast.success("Thanks! We'll check it, usually within a day.");
     } catch (e) {
       this.toast.error(problemOf(e).detail);
     } finally {

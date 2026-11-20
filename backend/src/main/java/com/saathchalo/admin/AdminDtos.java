@@ -30,7 +30,7 @@ public final class AdminDtos {
 	}
 
 	public record Dashboard(MemberStats members, RideStats rides, long openSosAlerts, long openReports,
-			long overdueReports, long ticketsWaiting, long idChecksWaiting, long staffCount, long featuresOn, long featuresTotal,
+			long overdueReports, long ticketsWaiting, long idChecksWaiting, long rentalsToCheck, long rentalDisputes, long staffCount, long featuresOn, long featuresTotal,
 			boolean maintenance, boolean signupsOpen, List<AuditEntryView> recentActivity) {
 	}
 

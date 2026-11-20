@@ -56,7 +56,8 @@ public class SecurityConfig {
 				// Visitors can look for rides before logging in: place names, search results and ride pages.
 				// Booking, offering and everything personal still needs a login.
 				.requestMatchers(HttpMethod.GET, "/api/places", "/api/places/**", "/api/rides/search", "/api/rides/*",
-						"/api/users/*/reviews", "/api/shared-trips/*", "/api/legal/contacts")
+						"/api/users/*/reviews", "/api/shared-trips/*", "/api/legal/contacts",
+						"/api/rentals/search", "/api/rentals/listings/*", "/api/rentals/listings/*/quote")
 				.permitAll()
 				.requestMatchers("/actuator/health", "/actuator/health/**", "/error").permitAll()
 				.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()

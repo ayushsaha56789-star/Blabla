@@ -29,9 +29,12 @@ public final class VerificationDtos {
 			RejectReason rejectReason, String rejectNote) {
 	}
 
-	/** {@code email} is masked; {@code latestIdCheck} is null until the member has sent one. */
+	/**
+	 * {@code email} is masked; {@code licenceVerified}: an approved driving licence check (needed for self-drive
+	 * rentals); {@code latestIdCheck} is null until the member has sent one.
+	 */
 	public record VerificationStatus(boolean phoneVerified, String email, boolean emailVerified, boolean idVerified,
-			IdCheckView latestIdCheck) {
+			boolean licenceVerified, IdCheckView latestIdCheck) {
 	}
 
 	/** {@code devCode} only in development and tests, like login codes. */

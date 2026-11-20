@@ -12,6 +12,8 @@ import com.saathchalo.moderation.ReportService;
 import com.saathchalo.rides.RideAdmin;
 import com.saathchalo.safety.SosService;
 import com.saathchalo.support.SupportService;
+import com.saathchalo.rentals.ListingService;
+import com.saathchalo.rentals.RentalService;
 import com.saathchalo.verification.IdCheckService;
 import com.saathchalo.user.MemberDirectory;
 import java.util.List;
@@ -44,9 +46,13 @@ public class AdminDashboardController {
 
 	private final IdCheckService idChecks;
 
+	private final ListingService listings;
+
+	private final RentalService rentals;
+
 	public AdminDashboardController(AdminContext context, MemberDirectory members, AccessService access,
 			FeatureService features, AuditService audit, RideAdmin rides, SosService sos,
-			ReportService reports, SupportService support, IdCheckService idChecks) {
+			ReportService reports, SupportService support, IdCheckService idChecks, ListingService listings, RentalService rentals) {
 		this.context = context;
 		this.members = members;
 		this.access = access;
@@ -57,6 +63,8 @@ public class AdminDashboardController {
 		this.reports = reports;
 		this.support = support;
 		this.idChecks = idChecks;
+		this.listings = listings;
+		this.rentals = rentals;
 	}
 
 	@GetMapping
@@ -65,7 +73,7 @@ public class AdminDashboardController {
 		boolean canSeeAudit = context.current().can(Permission.AUDIT_VIEW.code());
 		long total = FeatureCatalog.all().stream().filter(d -> !d.global()).count();
 		return new Dashboard(members.stats(14), rides.stats(), sos.openCount(), reports.openCount(), reports.overdueCount(),
-				support.waitingForStaff(), idChecks.pendingCount(),
+				support.waitingForStaff(), idChecks.pendingCount(), listings.waitingForReview(), rentals.disputesOpen(),
 				access.countStaff(), features.countOn(), total,
 				features.isMaintenance(),
 				features.signupsOpen(),

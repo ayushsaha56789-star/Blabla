@@ -13,8 +13,9 @@ Built with **Java 25 + Spring Boot 4** (backend) and **Angular 22 + Tailwind CSS
 | 3. Carpooling | My cars, place search, offer/search/book rides, requests, My rides, price cap | ✅ Done |
 | 4. Trust & safety | Chat, reviews, SOS and trip sharing, reports and blocks, help centre, privacy centre, email and ID checks | ✅ Done |
 | 5. Payments | Pay online (Razorpay), refunds, SaathChalo credits, driver earnings and payouts, double-entry ledger | ✅ Done |
-| 6. Car rentals | Self-drive and with driver | Next |
-| 7–11 | Driver partners, games, Gen-Z features, promotions, launch | Planned — see the architecture doc |
+| 6. Car rentals | List your car; rent one self-drive or with a driver; document checks, pickup and return records, deposits and disputes | ✅ Done |
+| 7. Driver partners | Licensed drivers with service areas; hire a driver | Next |
+| 8–11 | Games, Gen-Z features, promotions, launch | Planned — see the architecture doc |
 
 ## Run it locally
 
@@ -81,6 +82,19 @@ Online payments are **off** until you switch them on (console → Feature switch
 - **Credits** (Wallet page): from refunds, goodwill (staff can give them on a member's page) and later referrals. They pay for seats online and can't be withdrawn.
 - A service fee is possible (`app.payments.service-fee-percent`, default 0).
 
+## Car rentals (try it)
+
+Rentals are **off** until you switch them on (console → Feature switches → **Car rentals**). Before you do, check the rules in the cities you start in: paid self-drive rental generally needs commercially registered cars and permits (India's Rent-a-Cab scheme; see "Privacy and Indian law" in the architecture doc). You can switch rentals on for chosen cities only.
+
+- **List your car** (`/rentals/new`, or **Explore → Rent a car → List it for rent**): pick one of your cars, say how it's rented (self-drive, with you driving, or both), set the price per day (and per hour if you like), the refundable deposit, the km included per day and the price for extra km, the fuel rule, and the pickup area. The exact pickup address is shown only to a confirmed renter. Add photos and upload the RC and insurance (stored encrypted; only checking staff see them), then **Send for checking**.
+- **Staff check it** in the console (**Rentals → To check**) and approve it or send it back with a note. Turn on **Unchecked listings go live** to skip this while testing.
+- **Rent a car** (`/rentals`): search near a town for your dates. Each car shows the price for those dates; its page shows the deposit, the km included and the fuel rule. Self-drive needs an approved **driving licence** (Profile → Verification) and the owner's minimum age. The owner accepts or declines within a day (or the car is instantly booked if the owner allows it).
+- **Paying:** with online payments on, the renter pays rent and deposit online after the owner accepts (24 hours to pay). Otherwise both are paid to the owner at pickup.
+- **Pickup and return:** the owner records the odometer, fuel and photos at both ends (the renter can add their own pickup photos). At the return the owner can keep part of the deposit for extra km (worked out by itself) and other charges with a note. The renter accepts, or asks SaathChalo to check; it finishes by itself after 48 hours.
+- **Disputes:** staff see both sides with the photos (**Rentals → Disputes**) and decide what the owner keeps; both see the decision.
+- **Cancelling** (rentals paid online): the deposit always comes back. If the renter cancels less than 24 hours before pickup, half the rent goes to the owner (the same two `app.payments.*` settings as rides). When the owner or staff cancel, everything comes back.
+- Blocked dates: owners can mark when the car isn't available. Two bookings can never overlap; the database refuses it.
+
 ## The staff console (`/admin`)
 
 1. Log in with the number from step 2. You become **super admin** automatically (only when no super admin exists yet).
@@ -97,14 +111,15 @@ What you can do there:
 - **Reports** — members' reports with the reported message or review attached; acknowledge within 24 hours, resolve within 15 days (remove the content, take action, or dismiss).
 - **Help requests** — members' questions, oldest first; reply within 24 hours. Answered requests close by themselves after a quiet week.
 - **Payments** — what's held for upcoming trips, owed to drivers and given as credits, with three health checks (the ledger balances, wallets match it, held money matches open payments); every payment and refund (failed refunds can be retried); **Payouts** to drivers. A member's page shows their wallet and lets refund-handling staff give goodwill credits.
-- **ID checks** — compare the ID photo with the profile, then approve or reject with a reason. Every photo view is recorded; photos are stored encrypted and deleted 30 days after the decision (at once if a full Aadhaar number is visible).
+- **Rentals** — check new car listings (photos, RC and insurance; every document view is recorded) and approve or send them back; settle disputes about charges after a return; see every rental and cancel one if needed (everything is refunded).
+- **ID checks** — compare the ID photo (or driving licence) with the profile, then approve or reject with a reason. Every photo view is recorded; photos are stored encrypted and deleted 30 days after the decision (at once if a full Aadhaar number is visible).
 - **Staff** — add people (they must have logged in once) as Admin, Moderator or Support; change roles; reset two-step verification for a lost phone.
 - **Audit log** — every staff action, permanently recorded and hash-chained; "Verify integrity" proves nothing was changed.
 
 | Role | Can do |
 |---|---|
 | Super admin | Everything, including feature switches, staff, settings and driver payouts |
-| Admin | Members (incl. phone numbers), restrictions, ID checks, reports, SOS alerts, help requests, payments and credits, audit log |
+| Admin | Members (incl. phone numbers), restrictions, ID checks, reports, SOS alerts, help requests, rentals, payments and credits, audit log |
 | Moderator | Members, restrictions, ID checks, reports, SOS alerts, help requests |
 | Support | Members (incl. phone numbers), SOS alerts, help requests |
 
@@ -135,6 +150,7 @@ backend/                Spring Boot API, one module per feature (checked by Spri
     privacy/            data download, account deletion, legal contacts
     verification/       email codes, ID checks
     payments/           checkout (Razorpay), refunds, credits, earnings, payouts, ledger
+    rentals/            car listings, rental bookings, pickup/return records, disputes
     admin/              staff console APIs
     files/ config/ common/
   src/main/resources/db/migration/   Flyway database migrations
@@ -159,11 +175,10 @@ Set these environment variables (do not use the `dev` profile):
 | `JWT_SECRET` | Random secret, at least 32 characters |
 | `DATA_ENCRYPTION_KEY` | Base64 of 32 random bytes; encrypts 2FA secrets and other sensitive fields |
 | `SUPER_ADMIN_PHONE` | The owner's number (+91…), made super admin at first login |
-| `STORAGE_DIR` | Where profile photos and (encrypted) ID photos are stored |
+| `STORAGE_DIR` | Where profile and car photos and (encrypted) ID photos, car documents and pickup/return photos are stored |
 | `PUBLIC_URL` | The site's address, used in links sent by text message (e.g. trip-sharing links) |
 | `CORS_ALLOWED_ORIGINS` | Only if the web app is served from a different domain than the API |
 | `LEGAL_COMPANY`, `GRIEVANCE_OFFICER`, `GRIEVANCE_EMAIL`, `LEGAL_ADDRESS` | Shown on the Grievance officer page (the IT Rules 2021 ask for them) |
-
 | `PAYMENTS_PROVIDER` | `none` (default: online payments off) or `razorpay`. (`fake` works only in development and tests.) |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | From the Razorpay dashboard (required with `razorpay`) |
 | `RAZORPAYX_ACCOUNT_NUMBER` | Optional: lets staff send drivers payout links (RazorpayX). Without it, payouts are recorded by hand |
