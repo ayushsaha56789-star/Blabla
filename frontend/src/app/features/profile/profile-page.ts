@@ -9,6 +9,7 @@ import { ToastService } from '../../core/toast.service';
 import { UserApi } from '../../core/user-api';
 import { squareJpeg } from '../../core/util';
 import { Avatar } from '../../shared/avatar';
+import { BottomBar } from '../../shared/bottom-bar';
 import { Icon, IconName } from '../../shared/icon';
 import { PhonePipe } from '../../shared/phone.pipe';
 import { CHAT_OPTIONS } from './prefs';
@@ -22,7 +23,7 @@ import { POPULAR_CITIES } from '../../core/cities';
 @Component({
   selector: 'app-profile-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, DatePipe, Avatar, Icon, PhonePipe, MyCars, EmergencyContacts, VerificationCard, InterestsCard],
+  imports: [ReactiveFormsModule, RouterLink, DatePipe, Avatar, Icon, PhonePipe, MyCars, EmergencyContacts, VerificationCard, InterestsCard, BottomBar],
   templateUrl: './profile-page.html',
 })
 export class ProfilePage {

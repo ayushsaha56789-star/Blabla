@@ -1,6 +1,9 @@
 @import "tailwindcss";
+/* Floating lists (place suggestions) live in Angular CDK's overlay layer on top of the page, so no card, animation or
+   clipped section can cover or cut them off. */
+@import "@angular/cdk/overlay-prebuilt.css";
 
-/* Dark mode follows the `dark` class on <html>, set by ThemeService (and the boot script in index.html). */
+/* Dark mode follows the `dark` class on <html>, set by ThemeService (and the boot script in public/theme-init.js). */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -69,6 +72,8 @@
   }
   ::selection { @apply bg-brand-200 text-brand-950; }
   button:not(:disabled), [role="button"] { cursor: pointer; }
+  /* While a bar is fixed to the bottom of a phone screen (shared/bottom-bar.ts), leave room for it after the footer. */
+  body.has-bottom-bar { @apply max-lg:pb-[calc(5.5rem+env(safe-area-inset-bottom))]; }
 }
 
 @layer components {

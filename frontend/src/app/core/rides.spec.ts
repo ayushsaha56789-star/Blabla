@@ -1,3 +1,4 @@
+import { OverlayContainer } from '@angular/cdk/overlay';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -76,9 +77,13 @@ describe('place picker', () => {
     req.flush([bengaluru, rural]);
     await new Promise((r) => setTimeout(r));
     await fixture.whenStable();
-    const options = fixture.nativeElement.querySelectorAll('[role="option"]');
+    // The list floats in the overlay layer above the page (so nothing can cover or clip it), linked to the field.
+    const layer = TestBed.inject(OverlayContainer).getContainerElement();
+    const options = layer.querySelectorAll('[role="option"]');
     expect(options.length).toBe(2);
     expect(input.getAttribute('aria-expanded')).toBe('true');
+    expect(layer.querySelector(`#${input.getAttribute('aria-controls')}`)?.getAttribute('role')).toBe('listbox');
+    expect(fixture.nativeElement.querySelector('[role="option"]')).toBeNull();
 
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));

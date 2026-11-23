@@ -10,6 +10,7 @@ import { RidesApi } from '../../core/rides-api';
 import { ToastService } from '../../core/toast.service';
 import { TripsService } from '../../core/trips.service';
 import { todayIso } from '../../core/util';
+import { BottomBar } from '../../shared/bottom-bar';
 import { Icon } from '../../shared/icon';
 import { PlaceInput } from '../../shared/place-input';
 import { VehicleForm } from '../../shared/vehicle-form';
@@ -27,7 +28,7 @@ const optionalNumber = (v: unknown) => (v == null || v === '' ? undefined : numb
 @Component({
   selector: 'app-publish-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, Icon, PlaceInput, VehicleForm],
+  imports: [DatePipe, RouterLink, Icon, PlaceInput, VehicleForm, BottomBar],
   templateUrl: './publish-page.html',
 })
 export class PublishPage implements OnInit {

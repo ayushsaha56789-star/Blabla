@@ -1,6 +1,7 @@
 <nav class="container-page flex h-16 items-center gap-2" aria-label="Main">
   <a routerLink="/" class="mr-2 rounded-xl focus-visible:ring-4 focus-visible:ring-brand-500/30 focus-visible:outline-none" aria-label="SaathChalo home">
-    <app-logo [size]="34" />
+    <!-- On the narrowest phones only the mark shows, so the icons on the right always fit. -->
+    <app-logo [size]="34" class="max-[359px]:[&>span]:hidden" />
   </a>
 
   <div class="hidden items-center gap-1 whitespace-nowrap lg:flex">
@@ -46,13 +47,14 @@
     }
   </div>
 
-  <div class="ml-auto flex items-center gap-1.5">
+  <div class="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
     <button type="button" class="btn btn-ghost btn-icon text-[0.95rem] font-bold" translate="no" (click)="i18n.toggle()"
             [attr.aria-label]="i18n.lang() === 'hi' ? 'Switch to English' : 'हिन्दी में देखें (Hindi)'"
             [title]="i18n.lang() === 'hi' ? 'English' : 'हिन्दी'" [attr.lang]="i18n.lang() === 'hi' ? 'en' : 'hi'">
       {{ i18n.lang() === 'hi' ? 'EN' : 'अ' }}
     </button>
-    <div class="relative">
+    <!-- Phones choose the theme in the menu (there isn't room for every icon in the bar). -->
+    <div class="relative max-sm:hidden">
       <button type="button" class="btn btn-ghost btn-icon" (click)="toggle('theme')" [attr.aria-expanded]="openMenu() === 'theme'" aria-label="Choose theme" title="Theme">
         <app-icon [name]="theme.mode() === 'system' ? 'monitor' : theme.isDark() ? 'moon' : 'sun'" />
       </button>
@@ -156,7 +158,8 @@
 </nav>
 
 @if (mobileOpen()) {
-  <div id="mobile-menu" class="container-page animate-fade-up space-y-1 border-t border-slate-200/70 pt-3 pb-5 lg:hidden dark:border-slate-800/70">
+  <!-- The menu sits in the sticky top bar, so when it is taller than the screen it scrolls inside itself. -->
+  <div id="mobile-menu" class="container-page max-h-[calc(100dvh-4rem)] animate-fade-up space-y-1 overflow-y-auto overscroll-contain border-t border-slate-200/70 pt-3 pb-5 lg:hidden dark:border-slate-800/70">
     @if (auth.user(); as user) {
       <a routerLink="/profile" class="mb-2 flex items-center gap-3 rounded-2xl bg-slate-100 p-3 dark:bg-slate-900">
         <app-avatar [url]="user.avatarUrl" [name]="user.displayName" [size]="44" />
