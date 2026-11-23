@@ -99,7 +99,7 @@
             } @else {
               <div class="flex" [class.justify-end]="row.m.mine">
                 <div class="max-w-[85%] sm:max-w-[70%]">
-                  <div class="rounded-2xl px-3.5 py-2 text-[0.95rem] break-words whitespace-pre-line"
+                  <div class="rounded-2xl px-3.5 py-2 text-[0.95rem] break-words whitespace-pre-line" [attr.translate]="row.m.hidden ? null : 'no'"
                        [class]="row.m.hidden ? 'border border-dashed border-slate-300 italic text-slate-400 dark:border-slate-700'
                               : row.m.mine ? 'rounded-br-md bg-brand-600 text-white' : 'rounded-bl-md bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-slate-100'">
                     {{ row.m.hidden ? 'Message removed by SaathChalo' : row.m.body }}

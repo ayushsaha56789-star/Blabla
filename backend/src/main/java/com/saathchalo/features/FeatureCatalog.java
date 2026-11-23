@@ -106,7 +106,10 @@ public final class FeatureCatalog {
 			def("promotions.in_search", "promotions", "promotions", "Promotions in search", "One sponsored card between ride search results.",
 					10, true, false, false, true),
 			def("promotions.in_games", "promotions", "promotions", "Promotions in game lobbies", "One sponsored card on the games page.",
-					10, true, false, false, true));
+					10, true, false, false, true),
+
+			def("notifications", null, "core", "Notifications",
+					"A bell in the top bar with notices about bookings, trips, help replies and checks.", 11, true, false, false, true));
 
 	private static final Map<String, FeatureDefinition> BY_KEY;
 

@@ -74,9 +74,12 @@ public class DriverTripService {
 
 	private final SecureRandom random = new SecureRandom();
 
+	private final DriverNotices notices;
+
 	public DriverTripService(DriverTripRepository trips, DriverProfileRepository profiles, DriverProfileService drivers,
 			MemberProfiles members, BlockService blocks, PlaceDirectory places, PaymentService payments, AuditService audit,
-			JdbcTemplate jdbc, Clock clock) {
+			JdbcTemplate jdbc, Clock clock, DriverNotices notices) {
+		this.notices = notices;
 		this.trips = trips;
 		this.profiles = profiles;
 		this.drivers = drivers;
@@ -132,6 +135,7 @@ public class DriverTripService {
 				destination == null ? null : destination.name(), req.car().strip(), req.automatic(), q.fare(), q.extraPrice(),
 				payments.availableFor(me), startCode(), blankToNull(req.message()), now, answerBy);
 		trips.save(t);
+		notices.requested(t);
 		return view(t, me);
 	}
 
@@ -173,6 +177,7 @@ public class DriverTripService {
 		catch (DataIntegrityViolationException e) {
 			throw ApiException.conflict("busy", "You already have a trip at that time.");
 		}
+		notices.answered(t, true);
 		return view(t, me);
 	}
 
@@ -186,6 +191,7 @@ public class DriverTripService {
 			throw ApiException.conflict("not_requested", "This request was already answered or cancelled.");
 		}
 		t.decline(clock.instant());
+		notices.answered(t, false);
 		return view(t, me);
 	}
 
@@ -269,6 +275,7 @@ public class DriverTripService {
 			}
 		}
 		t.cancel(role, blankToNull(reason), clock.instant());
+		notices.cancelled(t, role, reason);
 		return view(t, me);
 	}
 
@@ -323,6 +330,7 @@ public class DriverTripService {
 		t.cancel("STAFF", reason == null || reason.isBlank() ? "Cancelled by SaathChalo" : reason.strip(), clock.instant());
 		audit.record(actor, "driver_trip.cancelled", "driver_trip", id.toString(), "Cancelled a hired-driver trip",
 				reason == null ? null : Map.of("reason", reason.strip()));
+		notices.cancelled(t, "STAFF", reason);
 		return view(t, null);
 	}
 

@@ -3,6 +3,8 @@ package com.saathchalo.support;
 import com.saathchalo.audit.Actor;
 import com.saathchalo.common.ApiException;
 import com.saathchalo.common.Masking;
+import com.saathchalo.notifications.Notice;
+import com.saathchalo.notifications.Notifier;
 import com.saathchalo.support.SupportDtos.Category;
 import com.saathchalo.support.SupportDtos.MessageView;
 import com.saathchalo.support.SupportDtos.NewTicket;
@@ -44,11 +46,15 @@ public class SupportService {
 
 	private final Clock clock;
 
-	public SupportService(TicketRepository tickets, TicketMessageRepository messages, MemberProfiles members, Clock clock) {
+	private final Notifier notifier;
+
+	public SupportService(TicketRepository tickets, TicketMessageRepository messages, MemberProfiles members, Clock clock,
+			Notifier notifier) {
 		this.tickets = tickets;
 		this.messages = messages;
 		this.members = members;
 		this.clock = clock;
+		this.notifier = notifier;
 	}
 
 	// ----- Members -----
@@ -132,6 +138,8 @@ public class SupportService {
 		Instant now = clock.instant();
 		messages.save(new TicketMessage(t.getId(), actor.id(), true, body.strip(), now));
 		t.staffReplied(actor.id(), now);
+		notifier.send(t.getUserId(), Notice.account("chat", "Our team replied to your help request", t.getSubject(),
+				"/help/requests/" + t.getId()));
 		return staffView(ticketId);
 	}
 

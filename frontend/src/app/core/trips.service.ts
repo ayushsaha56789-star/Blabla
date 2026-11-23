@@ -2,6 +2,7 @@ import { effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { AuthService } from './auth.service';
 import { ChatApi } from './chat-api';
 import { FeaturesService } from './features.service';
+import { NotificationsApi } from './notifications-api';
 import { RidesApi } from './rides-api';
 import { SupportApi } from './support-api';
 
@@ -17,11 +18,14 @@ export class TripsService {
   private readonly support = inject(SupportApi);
   private readonly auth = inject(AuthService);
   private readonly features = inject(FeaturesService);
+  private readonly notices = inject(NotificationsApi);
 
   readonly pendingRequests = signal(0);
   readonly upcomingTrips = signal(0);
   readonly unreadChats = signal(0);
   readonly supportReplies = signal(0);
+  /** New notices in the inbox (the bell). */
+  readonly unreadNotices = signal(0);
 
   constructor() {
     effect(() => {
@@ -29,6 +33,7 @@ export class TripsService {
       // Read the switches here so the counts refresh when the owner turns an area on or off.
       this.features.isOn('rides');
       this.features.isOn('chat');
+      this.features.isOn('notifications');
       untracked(() => (loggedIn ? void this.refresh() : this.clear()));
     });
     setInterval(() => {
@@ -38,7 +43,19 @@ export class TripsService {
 
   async refresh(): Promise<void> {
     if (!this.auth.isLoggedIn()) return;
-    await Promise.all([this.refreshTrips(), this.refreshChats(), this.refreshSupport()]);
+    await Promise.all([this.refreshTrips(), this.refreshChats(), this.refreshSupport(), this.refreshNotices()]);
+  }
+
+  async refreshNotices(): Promise<void> {
+    if (!this.auth.isLoggedIn() || !this.features.isOn('notifications')) {
+      this.unreadNotices.set(0);
+      return;
+    }
+    try {
+      this.unreadNotices.set((await this.notices.unread()).count);
+    } catch {
+      // A badge is a convenience; try again next time.
+    }
   }
 
   async refreshChats(): Promise<void> {
@@ -82,5 +99,6 @@ export class TripsService {
     this.upcomingTrips.set(0);
     this.unreadChats.set(0);
     this.supportReplies.set(0);
+    this.unreadNotices.set(0);
   }
 }

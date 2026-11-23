@@ -79,9 +79,12 @@ public class RentalService {
 
 	private final Clock clock;
 
+	private final RentalNotices notices;
+
 	public RentalService(RentalBookingRepository bookings, ListingService listings, MemberProfiles members, UserService users,
 			IdCheckService idChecks, BlockService blocks, PaymentService payments, FeatureService features, DocumentVault vault,
-			AuditService audit, JdbcTemplate jdbc, Clock clock) {
+			AuditService audit, JdbcTemplate jdbc, Clock clock, RentalNotices notices) {
+		this.notices = notices;
 		this.bookings = bookings;
 		this.listings = listings;
 		this.members = members;
@@ -149,6 +152,7 @@ public class RentalService {
 			b.accept(now, payBy(b, now));
 		}
 		saveHolding(b, "The car was just booked for that time. Try other dates.");
+		notices.requested(b);
 		return view(b, renter);
 	}
 
@@ -177,6 +181,7 @@ public class RentalService {
 			throw ApiException.conflict("cant_cancel", "This booking can't be cancelled now.");
 		}
 		b.cancel(renter ? "RENTER" : "OWNER", clock.instant());
+		notices.cancelled(b, renter ? "RENTER" : "OWNER");
 		return view(b, me);
 	}
 
@@ -224,6 +229,7 @@ public class RentalService {
 		}
 		b.accept(now, payBy(b, now));
 		saveHolding(b, "You already have a booking for part of that time.");
+		notices.answered(b, true);
 		return view(b, owner);
 	}
 
@@ -237,6 +243,7 @@ public class RentalService {
 			throw ApiException.conflict("not_requested", "This request was already answered or cancelled.");
 		}
 		b.decline(clock.instant());
+		notices.answered(b, false);
 		return view(b, owner);
 	}
 
@@ -377,6 +384,7 @@ public class RentalService {
 		}
 		b.cancel("STAFF", clock.instant());
 		audit.record(actor, "rental.cancelled", "rental_booking", id.toString(), "Cancelled a rental booking", null);
+		notices.cancelled(b, "STAFF");
 		return view(b, null);
 	}
 

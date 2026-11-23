@@ -47,6 +47,11 @@
   </div>
 
   <div class="ml-auto flex items-center gap-1.5">
+    <button type="button" class="btn btn-ghost btn-icon text-[0.95rem] font-bold" translate="no" (click)="i18n.toggle()"
+            [attr.aria-label]="i18n.lang() === 'hi' ? 'Switch to English' : 'हिन्दी में देखें (Hindi)'"
+            [title]="i18n.lang() === 'hi' ? 'English' : 'हिन्दी'" [attr.lang]="i18n.lang() === 'hi' ? 'en' : 'hi'">
+      {{ i18n.lang() === 'hi' ? 'EN' : 'अ' }}
+    </button>
     <div class="relative">
       <button type="button" class="btn btn-ghost btn-icon" (click)="toggle('theme')" [attr.aria-expanded]="openMenu() === 'theme'" aria-label="Choose theme" title="Theme">
         <app-icon [name]="theme.mode() === 'system' ? 'monitor' : theme.isDark() ? 'moon' : 'sun'" />
@@ -65,6 +70,16 @@
         <app-icon name="chat" />
         @if (trips.unreadChats()) {
           <span class="absolute -top-0.5 -right-0.5 min-w-5 rounded-full bg-brand-600 px-1 text-center text-[0.7rem] leading-5 font-bold text-white ring-2 ring-white dark:ring-slate-950" aria-hidden="true">{{ trips.unreadChats() }}</span>
+        }
+      </a>
+    }
+
+    @if (auth.isLoggedIn() && features.isOn('notifications')) {
+      <a routerLink="/notifications" routerLinkActive="!text-brand-700 dark:!text-brand-300 bg-brand-50 dark:bg-brand-500/10" class="btn btn-ghost btn-icon relative"
+         [attr.aria-label]="trips.unreadNotices() ? 'Notifications, ' + trips.unreadNotices() + ' new' : 'Notifications'" title="Notifications">
+        <app-icon name="bell" />
+        @if (trips.unreadNotices()) {
+          <span class="absolute -top-0.5 -right-0.5 min-w-5 rounded-full bg-accent-500 px-1 text-center text-[0.7rem] leading-5 font-bold text-white ring-2 ring-white dark:ring-slate-950" aria-hidden="true">{{ trips.unreadNotices() > 99 ? '99+' : trips.unreadNotices() }}</span>
         }
       </a>
     }
@@ -168,6 +183,12 @@
       <a routerLink="/messages" class="btn btn-ghost w-full justify-start text-base">
         <app-icon name="chat" /> Messages
         @if (trips.unreadChats()) { <span class="ml-auto rounded-full bg-brand-600 px-2 text-xs leading-6 font-bold text-white">{{ trips.unreadChats() }} unread</span> }
+      </a>
+    }
+    @if (auth.isLoggedIn() && features.isOn('notifications')) {
+      <a routerLink="/notifications" class="btn btn-ghost w-full justify-start text-base">
+        <app-icon name="bell" /> Notifications
+        @if (trips.unreadNotices()) { <span class="ml-auto rounded-full bg-accent-500 px-2 text-xs leading-6 font-bold text-white">{{ trips.unreadNotices() }} new</span> }
       </a>
     }
     @for (p of extras(); track p.key) {

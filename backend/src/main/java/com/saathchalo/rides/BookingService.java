@@ -61,9 +61,12 @@ public class BookingService {
 	private record Prepared(Ride ride, int from, int to, int price, String message, Instant now) {
 	}
 
+	private final RideNotices notices;
+
 	public BookingService(RideRepository rides, BookingRepository bookings, MemberProfiles members, RateLimiter limiter,
 			BlockService blocks, RideViews views, Clock clock, FeatureService features, AppProperties props,
-			ObjectProvider<OnlinePayments> onlinePayments) {
+			ObjectProvider<OnlinePayments> onlinePayments, RideNotices notices) {
+		this.notices = notices;
 		this.rides = rides;
 		this.bookings = bookings;
 		this.members = members;
@@ -86,6 +89,7 @@ public class BookingService {
 		Prepared p = prepare(rideId, passengerId, req);
 		Booking booking = bookings.save(new Booking(rideId, passengerId, p.from(), p.to(), req.seats(), p.price(),
 				p.ride().isInstantBooking(), p.message(), p.now()));
+		notices.newBooking(p.ride(), booking);
 		return views.booking(booking, p.ride());
 	}
 
@@ -112,6 +116,7 @@ public class BookingService {
 			return false;
 		}
 		b.paid(ride.isInstantBooking(), now);
+		notices.newBooking(ride, b);
 		return true;
 	}
 
@@ -193,6 +198,7 @@ public class BookingService {
 			throw ApiException.conflict("trip_started", "Your pickup time has passed, so this booking can't be cancelled now.");
 		}
 		b.cancel("PASSENGER", clock.instant());
+		notices.passengerCancelled(ride, b);
 		return views.booking(b, ride);
 	}
 
@@ -209,6 +215,7 @@ public class BookingService {
 			throw ApiException.conflict("request_too_late", "The pickup time for this request has passed.");
 		}
 		b.decide(accept, clock.instant());
+		notices.answered(ride, b, accept);
 		return views.booking(b, ride);
 	}
 

@@ -74,9 +74,12 @@ public class RideService {
 
 	private final Clock clock;
 
+	private final RideNotices notices;
+
 	public RideService(RideRepository rides, BookingRepository bookings, PlaceDirectory places, VehicleService vehicles,
 			MemberProfiles members, UserService users, FeatureService features, RateLimiter limiter, RideViews views,
-			AppProperties props, Clock clock) {
+			AppProperties props, Clock clock, RideNotices notices) {
+		this.notices = notices;
 		this.rides = rides;
 		this.bookings = bookings;
 		this.places = places;
@@ -184,6 +187,7 @@ public class RideService {
 		ride.cancel(by, clean(reason), now);
 		List<Booking> live = bookings.findByRideIdInAndStatusIn(List.of(ride.getId()), BookingStatus.LIVE);
 		live.forEach(b -> b.cancel(by, now));
+		notices.rideCancelled(ride, live, clean(reason), "STAFF".equals(by));
 		return live.size();
 	}
 

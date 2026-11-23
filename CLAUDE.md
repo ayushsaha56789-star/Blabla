@@ -33,7 +33,9 @@ The full architecture, roadmap and the owner's decisions are in **`docs/ARCHITEC
 | 8 | Games: chess and ludo, free | Done |
 | 9 | Gen-Z layer: XP, badges, referrals, squads, events, vibe match | Done |
 | 10 | Promotions: members promote a business, staff checks, Sponsored cards (free during the launch offer) | Done |
-| 11 | Launch: Hindi, notifications, hardening, deployment | Next |
+| 11 | Launch: notification inbox, Hindi (beta), real SMS/email, hardening, Docker deployment, CI | Done |
+
+All planned phases are built. What's left is the launch checklist in `docs/DEPLOYMENT.md` (mostly the owner's accounts and reviews) and the follow-ups at the end of the roadmap in `docs/ARCHITECTURE.md` (browser push, more Hindi, penetration test fixes). Plan each one with the owner first.
 
 ## Stack and commands
 
@@ -48,7 +50,7 @@ The full architecture, roadmap and the owner's decisions are in **`docs/ARCHITEC
 
 ## Conventions
 
-- Backend is package-by-feature under `com.saathchalo` (`auth`, `user`, `access`, `features`, `audit`, `admin`, `geo`, `vehicles`, `rides`, `chat`, `reviews`, `safety`, `moderation`, `support`, `privacy`, `verification`, `payments`, `rentals`, `drivers`, `games`, `rewards`, `community`, `promotions`, `files`, `config`, `common`); Spring Modulith's test fails the build if a module reaches into another module's `internal` package. Controllers stay thin; services hold the logic and transactions; request/response types are records in `*Dtos.java`.
+- Backend is package-by-feature under `com.saathchalo` (`auth`, `user`, `access`, `features`, `audit`, `admin`, `geo`, `vehicles`, `rides`, `chat`, `reviews`, `safety`, `moderation`, `support`, `privacy`, `verification`, `payments`, `rentals`, `drivers`, `games`, `rewards`, `community`, `promotions`, `notifications`, `files`, `config`, `common`); Spring Modulith's test fails the build if a module reaches into another module's `internal` package. Controllers stay thin; services hold the logic and transactions; request/response types are records in `*Dtos.java`.
 - Errors: throw `ApiException` with a stable `code` and a friendly message; the API answers with RFC 9457 problem details.
 - Spring Boot 4 uses Jackson 3: optional true/false fields in request records must be `Boolean`, not `boolean`, or a missing field fails the whole request.
 - Database changes only through a **new** Flyway migration `V<n>__description.sql`. Never edit one that has already run.
@@ -56,4 +58,6 @@ The full architecture, roadmap and the owner's decisions are in **`docs/ARCHITEC
 - Money is in paise (`long`) and every movement goes through `payments.Ledger.post(...)` as a balanced journal. Never call a payment gateway while holding a ride's row lock. Anything new that members pay for implements `payments.PayableKind` (see `RidePayments`, `RentalPayments`, `DriverPayments`) and starts its checkout with `PaymentService.startPayment(...)`.
 - Frontend: state in signals (the app is zoneless, so plain fields don't re-render), `OnPush` components, lazy-loaded routes, API calls in `core/*-api.ts`, errors shown through `problemOf()`. Styling uses Tailwind classes plus the shared classes in `src/styles.css` (`.btn`, `.card`, `.input`, `.chip`, `.segmented`, `.switch`, `.data-table`, `.role-*`). Icons come from `app-icon`. Every page must work in the white and the black theme and on phones.
 - **New features plug into the control centre:** add a switch to `FeatureCatalog` (backend), mark the APIs `@RequiresFeature("key")`, gate menus/routes with `FeaturesService.isOn()` / `featureGuard()`. Staff APIs go under `/api/admin/**` with `@PreAuthorize(Perm.X)`; sensitive ones also get `@RequiresConfirmation` (fresh 2FA code). Services record sensitive actions with `AuditService.record(...)`.
+- Tell members about things they must act on with `notifications.Notifier.send(member, Notice.trips(...))` inside the same transaction (links: in-app paths only).
+- New interface text gets its Hindi in `frontend/src/app/core/i18n-hi.ts` (keys are the exact English on screen); mark members' own words (messages, bios, promotions) `translate="no"`.
 - Staff console tokens live only in memory: a full page reload asks for the 2FA code again (by design). In browser tests, navigate the console with the sidebar instead of reloading.

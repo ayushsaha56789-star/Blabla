@@ -42,7 +42,23 @@ class PermissionMatrixTest extends IntegrationTest {
 				new Check("features", () -> get("/api/admin/features"), 200, 403, 403, 403),
 				new Check("staff list", () -> get("/api/admin/staff"), 200, 403, 403, 403),
 				new Check("audit log", () -> get("/api/admin/audit"), 200, 200, 403, 403),
-				new Check("audit verify", () -> get("/api/admin/audit/verify"), 200, 200, 403, 403));
+				new Check("audit verify", () -> get("/api/admin/audit/verify"), 200, 200, 403, 403),
+				// Areas added in phases 3–10.
+				new Check("rides", () -> get("/api/admin/rides"), 200, 200, 200, 200),
+				new Check("SOS alerts", () -> get("/api/admin/safety/sos"), 200, 200, 200, 200),
+				new Check("help requests", () -> get("/api/admin/support/tickets"), 200, 200, 200, 200),
+				new Check("reports", () -> get("/api/admin/reports"), 200, 200, 200, 403),
+				new Check("ID checks", () -> get("/api/admin/verifications"), 200, 200, 200, 403),
+				new Check("events", () -> get("/api/admin/events"), 200, 200, 200, 403),
+				new Check("promotions", () -> get("/api/admin/promotions"), 200, 200, 200, 403),
+				new Check("rental listings", () -> get("/api/admin/rentals/listings"), 200, 200, 403, 403),
+				new Check("rental bookings", () -> get("/api/admin/rentals/bookings"), 200, 200, 403, 403),
+				new Check("drivers", () -> get("/api/admin/drivers"), 200, 200, 403, 403),
+				new Check("driver trips", () -> get("/api/admin/drivers/trips"), 200, 200, 403, 403),
+				new Check("payments summary", () -> get("/api/admin/payments/summary"), 200, 200, 403, 403),
+				new Check("payments", () -> get("/api/admin/payments"), 200, 200, 403, 403),
+				new Check("owed to drivers", () -> get("/api/admin/payouts/owed"), 200, 200, 403, 403),
+				new Check("payouts", () -> get("/api/admin/payouts"), 200, 200, 403, 403));
 
 		List<String> wrong = new ArrayList<>();
 		for (Check check : checks) {

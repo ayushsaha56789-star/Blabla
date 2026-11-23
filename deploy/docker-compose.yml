@@ -1,0 +1,59 @@
+# SaathChalo on one server: PostgreSQL with PostGIS, the API, and Caddy (HTTPS + the website).
+# Usage (on the server, from this folder): copy .env.example to .env, fill it in, then `docker compose up -d --build`.
+# Full steps: docs/DEPLOYMENT.md.
+
+services:
+  db:
+    image: postgis/postgis:16-3.5
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: saathchalo
+      POSTGRES_USER: saathchalo
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in deploy/.env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saathchalo -d saathchalo"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # No ports: only the app can reach the database.
+
+  app:
+    build: ../backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/saathchalo
+      DB_USER: saathchalo
+      STORAGE_DIR: /data/uploads
+      PUBLIC_URL: https://${SITE_ADDRESS:?Set SITE_ADDRESS in deploy/.env}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    # No ports: Caddy passes /api to it on the internal network.
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
+volumes:
+  db-data:
+  uploads:
+  caddy-data:
+  caddy-config:

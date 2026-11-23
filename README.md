@@ -18,7 +18,7 @@ Built with **Java 25 + Spring Boot 4** (backend) and **Angular 22 + Tailwind CSS
 | 8. Games | Chess and ludo, free: against the computer, with friends, quick match, with co-travellers; ratings and a leaderboard | ✅ Done |
 | 9. Gen-Z layer | My journey (XP, levels, badges, streaks, CO₂ saved, share card), invite rewards, squads, event rides, vibe match, eco leaderboard | ✅ Done |
 | 10. Promotions | Members promote a business or project to chosen towns (checked by staff, clearly marked Sponsored, at most 3 times a day); free during the launch offer | ✅ Done |
-| 11. Launch | Hindi, notifications, hardening, deployment | Next — see the architecture doc |
+| 11. Launch | Notification inbox, Hindi (beta), real SMS and email, production safety checks and limits, Docker deployment with HTTPS, backups, CI | ✅ Done — next: the launch steps in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
 
 ## Run it locally
 
@@ -140,6 +140,22 @@ Promotions are **off** until you switch them on (console → Feature switches �
 - **Numbers for the owner of a promotion:** views, clicks and the share who clicked, never who saw it.
 - **Free launch offer:** promotions are free up to and including the date in `PROMOTIONS_FREE_UNTIL` (blank = free; set it to one month after launch). After that date new promotions can't be sent until paid promotions (with GST invoices) are built; drafts can still be saved.
 
+## Notifications and Hindi (try it)
+
+- **Notifications** (on by default; console → Feature switches → **Notifications**): the bell in the top bar counts new notices, and `/notifications` lists them by day. Each notice links to the page where you can act. Notices are sent for:
+  - booking requests, instant bookings, answers and cancellations;
+  - rides cancelled by the driver or our team, and requests that expired;
+  - "How was your trip?" after a ride;
+  - help replies, ID checks and promotion decisions;
+  - rental and hired-driver requests, answers and cancellations;
+  - invite rewards.
+
+  Opening the inbox marks everything as seen. Members can turn off trip-rating reminders and rewards; notices about trips and their account always arrive. Notices are deleted after 90 days.
+- **Hindi (beta):** the **अ** button in the top bar switches the site to Hindi; **EN** switches back. The choice is remembered in that browser, and browsers set to Hindi start in Hindi.
+  - The menus, home page, login, sign-up, search, My rides and notifications are translated so far. Anything else stays in English until it is translated.
+  - Members' own words (chat, promotions) are never translated.
+  - Translations live in `frontend/src/app/core/i18n-hi.ts`. A native speaker should review them before launch.
+
 ## The staff console (`/admin`)
 
 1. Log in with the number from step 2. You become **super admin** automatically (only when no super admin exists yet).
@@ -178,6 +194,12 @@ cd backend && ./mvnw test                 # needs the saathchalo_test database f
 cd frontend && npm test -- --watch=false
 ```
 
+GitHub Actions runs both, plus a production build, on every push to `main` and on pull requests (`.github/workflows/ci.yml`). It never deploys anything.
+
+## Going live
+
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) is the step-by-step guide: one server with Docker Compose (`deploy/`), HTTPS from Caddy, nightly backups, updates, and the launch checklist (DLT, KYC, legal, penetration test).
+
 ## Project layout
 
 ```
@@ -204,6 +226,7 @@ backend/                Spring Boot API, one module per feature (checked by Spri
     rewards/            My journey (worked out from trips), invite codes and credits, eco leaderboard
     community/          squads, event rides, vibe match
     promotions/         members' promotions: rules, staff checks, where they're shown, views and clicks
+    notifications/      the notification inbox (other modules call notifications.Notifier)
     admin/              staff console APIs
     files/ config/ common/
   src/main/resources/db/migration/   Flyway database migrations
@@ -213,6 +236,8 @@ frontend/               Angular web app
   src/app/core/         auth, API clients, feature switches, theme
   src/app/features/     member pages
   src/app/layout/ shared/
+deploy/                 Docker Compose, Caddyfile (HTTPS, security headers), example settings, backup script
+.github/workflows/      CI: tests and a production build on every push
 scripts/setup-db.sql    one-time local database setup
 scripts/build_places.py rebuilds the place list from GeoNames (instructions inside)
 docs/ARCHITECTURE.md    architecture, roadmap and the owner's decisions
@@ -220,7 +245,16 @@ docs/ARCHITECTURE.md    architecture, roadmap and the owner's decisions
 
 ## Production settings
 
-Set these environment variables (do not use the `dev` profile):
+Set these environment variables (do not use the `dev` profile). With Docker Compose they go in `deploy/.env` (start from `deploy/.env.example`). Outside the `dev` and `test` profiles the server **refuses to start** with unsafe settings and lists what to fix:
+
+- login codes shown on screen;
+- a short `JWT_SECRET` or a missing `DATA_ENCRYPTION_KEY`;
+- insecure cookies;
+- pretend payments;
+- a `PUBLIC_URL` without https;
+- console SMS or email senders.
+
+Swagger is off outside `dev`. Visitors are limited to 600 requests a minute per address, and members to 120 changes a minute (`app.limits.*`).
 
 | Variable | Purpose |
 |---|---|
@@ -236,7 +270,10 @@ Set these environment variables (do not use the `dev` profile):
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | From the Razorpay dashboard (required with `razorpay`) |
 | `RAZORPAYX_ACCOUNT_NUMBER` | Optional: lets staff send drivers payout links (RazorpayX). Without it, payouts are recorded by hand |
 | `PROMOTIONS_FREE_UNTIL` | Last day (YYYY-MM-DD) of the free promotions offer; blank = free. Set it to one month after launch |
+| `SMS_PROVIDER`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM` (or `TWILIO_MESSAGING_SERVICE_SID`) | Text messages (login codes, SOS) through Twilio: `SMS_PROVIDER=twilio`. Indian numbers need DLT registration |
+| `EMAIL_PROVIDER`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `EMAIL_FROM` | Email through any SMTP service: `EMAIL_PROVIDER=smtp`. Only encrypted connections (587 STARTTLS or 465 TLS) |
+| `ALLOW_CONSOLE_SENDERS` | `true` only on a private test server without SMS/email accounts (login codes go to the log). Never on the real site |
 
-A real SMS provider (MSG91 or Twilio) and a real email provider replace the development console senders before launch (`app.sms.provider`, `app.email.provider`).
+In development, text messages and emails are only written to the log (the `console` senders). On a live server, use Twilio and SMTP (above). Another SMS provider (for example MSG91) can be added as one more `SmsSender`.
 
 **Razorpay set-up:** finish Razorpay's business verification (KYC); turn on **automatic capture**; add a webhook to `https://<your-site>/api/payments/webhook` with the secret above and the events `payment.captured`, `order.paid`, `refund.processed`, `refund.failed` (and `payout_link.*` with RazorpayX). The site's Content Security Policy must allow `https://checkout.razorpay.com` (script) and `https://api.razorpay.com` (frame).

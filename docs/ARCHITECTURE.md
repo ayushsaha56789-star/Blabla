@@ -79,7 +79,7 @@ Modules talk to each other only through each module's public service classes and
 | `audit` | Tamper-evident log of sensitive actions | 2 |
 | `privacy` | Data download, account deletion, legal contacts (consent records later) | 4 ✓ |
 | `files` | Storage, image processing, document encryption | 1 ✓, 4 ✓ |
-| `notifications` | In-app inbox, browser push, SMS, email, member preferences | 11 (Phase 4 has badges and SMS for SOS) |
+| `notifications` | In-app inbox and member choices; browser push later (the SMS and email senders live in `auth` and `verification`) | 11 ✓ (Phase 4 has badges and SMS for SOS) |
 | `payments` | Razorpay orders, webhooks, refunds, payouts, ledger, credits | 5 ✓ |
 | `geo` | Place search and routes (OpenStreetMap), PostGIS helpers | 3 |
 
@@ -314,11 +314,19 @@ Targeting is by town only, never by sensitive data. Not allowed: betting and mon
 
 Later: paid promotions through `payments.PayableKind` with GST invoices (a chartered accountant confirms the rates first), a card on the screen after a ride, interest-based targeting from vibe-match interests, and business profile pages.
 
-### 7.9 Notifications (Phases 4 and 11)
+### 7.9 Notifications (Phases 4 and 11, built)
 
-- Phase 4: badges in the menu (requests waiting, unread chats, new help replies), SMS for SOS, and email codes (development senders write to the log).
-- Phase 11: an in-app inbox for everything; browser push notifications for bookings, chats and game turns; SMS only for login codes and SOS; email for receipts.
-- Members choose which kinds they receive. Marketing messages are sent only with consent.
+- **Phase 4:** badges in the menu (requests waiting, unread chats, new help replies), SMS for SOS, and email codes.
+- **Phase 11, as built:** an **inbox** behind a bell with an unread count, refreshed with the other badges every 30 seconds.
+  - **How notices are sent:** modules call `notifications.Notifier.send(member, Notice)` inside their own transaction, like the audit log, so a notice exists only if the change itself was saved. Links must be paths inside the app.
+  - **What triggers a notice:**
+    - rides: new requests and instant bookings, answers, cancellations by either side or our team, expired requests, and "rate your trip" a few hours after arrival;
+    - rentals and hired drivers: requests, answers and cancellations;
+    - help replies, ID-check decisions, promotion decisions and invite rewards.
+  - **Topics:** TRIPS and ACCOUNT always arrive. REMINDERS and REWARDS can be muted. Opening the inbox marks everything seen. Notices are deleted after 90 days.
+  - **Switch:** `notifications`, on by default.
+- **SMS and email:** a Twilio sender (`SMS_PROVIDER=twilio`) for login codes and SOS, and an SMTP sender (`EMAIL_PROVIDER=smtp`, encrypted connections only) for email codes. Failures become a friendly "try again in a minute"; message texts never reach the logs.
+- **Next:** browser push notifications for bookings, chats and game turns. They need a service worker, VAPID keys and HTTPS, and will use the same topics and choices. After that, email receipts. Marketing messages only with consent.
 
 ## 8. Security architecture
 
@@ -339,6 +347,25 @@ Later: paid promotions through `payments.PayableKind` with GST invoices (a chart
 | Supply chain | Pinned versions, a one-week minimum age for new packages, dependency and container scanning, software bill of materials |
 | Operations | Central logs kept at least 1 year in India, alerts, encrypted backups with tested restores, an incident plan (CERT-In report within 6 hours) |
 | Testing | Security tests in the test suite, an automated web scan (OWASP ZAP), and an external penetration test before public launch |
+
+**Built in Phase 11 (launch hardening):**
+
+- **Start-up checks** (`config.ProductionChecks`): outside the dev and test profiles, the server refuses to start with unsafe settings, and lists each one. These are:
+  - login codes shown on screen;
+  - a JWT secret under 32 characters, or no data-encryption key;
+  - insecure refresh cookies;
+  - pretend payments;
+  - a site address without https;
+  - console SMS or email senders, unless `ALLOW_CONSOLE_SENDERS` is set for a private test server.
+- **Request ceiling** (`config.RequestLimitFilter`): visitors get 600 requests a minute per address, and members 120 changes a minute per account. It sits on top of the per-feature limits; the signed payment webhook is exempt.
+- **Swagger** is off outside dev.
+- **Client address:** the app takes it from the proxy's `X-Forwarded-*` headers, but only from private addresses.
+- **Website:**
+  - Caddy sends HSTS, `nosniff`, `frame-ancestors 'none'`, and a strict Content-Security-Policy: scripts only from the site and Razorpay's checkout, no inline scripts;
+  - the theme script moved to `theme-init.js`, and critical-CSS inlining is off for that reason;
+  - the production build is checked under that exact policy in the browser walkthrough.
+- **Permission-matrix test:** it now covers every staff list added in phases 3–10.
+- **CI:** GitHub Actions runs every test and a production build on each push.
 
 ## 9. Privacy and Indian law
 
@@ -382,6 +409,7 @@ The table is the reference for that later work.
 | Games and ratings | Until the account is erased | Ratings deleted; seats in past games become "Former member" |
 | Promotions and their pictures | Until the member deletes them or the account is erased | Deleted |
 | Who saw a promotion on which day (for the 3-a-day limit) | 7 days | Deleted; only the totals stay on the promotion |
+| Notices in the inbox | 90 days (and erased with the account) | Deleted |
 | Help requests | Until the account is erased | Deleted |
 | Security logs | At least 1 year | Deleted |
 | Payments, refunds, payouts and the ledger | As tax law requires (about 8 years); kept after an account is erased, pointing to the anonymised account | Archived |
@@ -406,7 +434,13 @@ frontend/src/app/
 - `featureGuard('games')` on routes and `*appIfFeature="'games'"` in templates hide anything that is switched off.
 - The admin console loads only for staff (role check plus 2FA), so normal members never download it. The server still checks every request.
 - Games draw boards with SVG or canvas, and computer opponents run in Web Workers so the page stays smooth.
-- Hindi and English with an in-app language switch (Phase 11); accessibility to WCAG 2.2 AA; page-size budgets enforced at build time.
+- Hindi and English with an in-app language switch (Phase 11, beta); accessibility to WCAG 2.2 AA; page-size budgets enforced at build time.
+- **How Hindi works (as built):** `core/I18nService` keeps the choice (this browser; Hindi-language browsers start in Hindi) and sets `<html lang>`.
+  - In Hindi, a page observer swaps interface texts and labels (placeholder, aria-label, title, alt) for their translation in `core/i18n-hi.ts`, and restores English when switched back. It uses exact texts, plus a few patterns for counts and notice titles.
+  - Missing translations simply stay English, so pages can be translated one at a time.
+  - Members' own words are marked `translate="no"` and never touched.
+  - New interface text should get its Hindi in `i18n-hi.ts`.
+  - If the dictionary grows very large, Angular's compile-time i18n (`$localize`, one build per language) can replace this without changing the templates' wording.
 
 ## 12. Deployment and operations
 
@@ -420,6 +454,25 @@ frontend/src/app/
 - GitHub Actions run the tests and security scans on every change. A deployment needs the owner's manual approval.
 - Monitoring: health checks, metrics (Micrometer with Prometheus and Grafana), uptime alerts, error tracking.
 - Scheduled jobs (retention clean-up, reminders, payouts, reconciliation) run exactly once, even with several servers (ShedLock).
+
+**As built for the starter set-up (Phase 11):** `deploy/docker-compose.yml` runs three containers.
+
+- **db:** `postgis/postgis:16`, with no public port.
+- **app:** the API, built by `backend/Dockerfile`. It runs as a non-root user, and uploads live in a volume.
+- **web:** Caddy (`deploy/web.Dockerfile`). It serves the Angular build, gets the Let's Encrypt certificate, adds the security headers and passes `/api` to the app.
+
+The rest of the kit:
+
+- Settings come from `deploy/.env`; `deploy/.env.example` lists them all, without secrets.
+- `deploy/backup.sh` makes nightly database and upload backups and keeps two weeks.
+- `.github/workflows/ci.yml` runs the tests and a build on each push, and never deploys.
+- `docs/DEPLOYMENT.md` is the owner's step-by-step guide.
+
+**Still to come:**
+
+- Cloudflare, Prometheus/Grafana and error tracking.
+- ShedLock, once there is more than one app server. At launch there is one, and the in-memory rate limits assume that.
+- Moving uploads to S3-compatible storage when growing.
 
 ## 13. Testing, and the "done" checklist for every phase
 
@@ -444,7 +497,19 @@ frontend/src/app/
 | 8 ✓ | **Games**: chess and ludo (computer, friends, quick match, ride lobby), leaderboards | Done |
 | 9 ✓ | **Gen-Z layer**: XP, badges, streaks, referrals, CO₂ card, squads, events, vibe match | Done |
 | 10 ✓ | **Promotions**: members promote a business to chosen towns, staff checks, Sponsored cards in Discover, search and games, views and clicks (free during the launch offer) | Done |
-| 11 | **Launch**: Hindi, notifications, security hardening, fixes from an external penetration test, monitoring, deployment | 4–5 |
+| 11 ✓ | **Launch**: notification inbox, Hindi (beta), Twilio SMS and SMTP email, production start-up checks, request limits, strict CSP, Docker Compose deployment with HTTPS, backups, CI | Done |
+
+**After Phase 11:** the work left before and around the public launch:
+
+- **Owner's steps:** the launch checklist in `docs/DEPLOYMENT.md` (DLT, KYC, legal review, GST advice, hosting).
+- **Security:** an external penetration test, and fixes for what it finds.
+- **Features:**
+  - browser push notifications;
+  - Hindi on the remaining pages, after a native speaker's review;
+  - email receipts;
+  - Razorpay daily reconciliation;
+  - paid promotions with GST invoices;
+  - monitoring (metrics, error tracking).
 
 That is about 36–46 working sessions in total: roughly 2.5 to 3 months of steady work. Some non-coding steps take time in parallel: Razorpay KYC, SMS DLT registration, a KYC provider account, legal review and hosting.
 

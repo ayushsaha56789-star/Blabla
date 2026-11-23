@@ -4,6 +4,8 @@ import com.saathchalo.audit.Actor;
 import com.saathchalo.audit.AuditService;
 import com.saathchalo.common.ApiException;
 import com.saathchalo.common.Masking;
+import com.saathchalo.notifications.Notice;
+import com.saathchalo.notifications.Notifier;
 import com.saathchalo.common.RateLimiter;
 import com.saathchalo.files.DocumentVault;
 import com.saathchalo.user.MemberProfiles;
@@ -56,8 +58,11 @@ public class IdCheckService {
 
 	private final Clock clock;
 
+	private final Notifier notifier;
+
 	public IdCheckService(IdCheckRepository checks, DocumentVault vault, UserService users, MemberProfiles members,
-			AuditService audit, RateLimiter limiter, Clock clock) {
+			AuditService audit, RateLimiter limiter, Clock clock, Notifier notifier) {
+		this.notifier = notifier;
 		this.checks = checks;
 		this.vault = vault;
 		this.users = users;
@@ -162,6 +167,8 @@ public class IdCheckService {
 		users.setIdVerified(c.getUserId(), true);
 		audit.record(actor, "id_check.approved", "member", c.getUserId().toString(),
 				"Approved an ID check (" + c.getDocumentType() + ")", null);
+		notifier.send(c.getUserId(), Notice.account("idCard", "Your ID is verified",
+				"Your profile now shows the verified badge. Thank you for helping keep SaathChalo safe.", "/profile"));
 		return staffView(c);
 	}
 
@@ -177,6 +184,8 @@ public class IdCheckService {
 		}
 		audit.record(actor, "id_check.rejected", "member", c.getUserId().toString(),
 				"Rejected an ID check (" + c.getDocumentType() + "): " + reason.name(), null);
+		notifier.send(c.getUserId(), Notice.account("idCard", "We couldn't verify your ID",
+				"Your profile shows why and how to try again.", "/profile"));
 		return staffView(c);
 	}
 

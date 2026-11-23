@@ -1,0 +1,39 @@
+# Caddy: HTTPS (certificates from Let's Encrypt, renewed automatically), security headers, the website and /api.
+# SITE_ADDRESS is the domain, e.g. saathchalo.in (set in deploy/.env).
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(self), microphone=(), geolocation=(self), payment=(self)"
+		# Scripts only from this site and Razorpay's checkout; no inline scripts. Angular adds component styles at
+		# runtime, hence 'unsafe-inline' for styles only.
+		Content-Security-Policy "default-src 'self'; script-src 'self' https://checkout.razorpay.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com; frame-src https://api.razorpay.com https://checkout.razorpay.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+		-Server
+	}
+
+	# The API (and nothing else of the backend: no actuator, no API docs).
+	handle /api/* {
+		reverse_proxy app:8080
+	}
+
+	# The website: files with a hash in their name never change, so browsers may keep them for a year.
+	handle {
+		root * /srv
+		@hashed path_regexp .*-[A-Za-z0-9_-]{8}\.(js|css)$
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		@page not path_regexp \.(js|css|svg|png|jpg|webp|woff2|ico|txt)$
+		header @page Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+# www.<domain> sends visitors to the main address.
+www.{$SITE_ADDRESS} {
+	redir https://{$SITE_ADDRESS}{uri} permanent
+}

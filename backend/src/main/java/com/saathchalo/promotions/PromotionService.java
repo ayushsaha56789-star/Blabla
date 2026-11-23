@@ -7,6 +7,8 @@ import com.saathchalo.files.PromoImageStorage;
 import com.saathchalo.files.PublicImages;
 import com.saathchalo.geo.Place;
 import com.saathchalo.geo.PlaceDirectory;
+import com.saathchalo.notifications.Notice;
+import com.saathchalo.notifications.Notifier;
 import com.saathchalo.promotions.PromotionDtos.AdminPromotionRow;
 import com.saathchalo.promotions.PromotionDtos.Category;
 import com.saathchalo.promotions.PromotionDtos.City;
@@ -64,10 +66,14 @@ public class PromotionService {
 
 	private final Clock clock;
 
+	private final Notifier notifier;
+
 	private final LocalDate freeUntil;
 
 	public PromotionService(JdbcTemplate jdbc, MemberProfiles members, BlockService blocks, PlaceDirectory places,
-			PromoImageStorage images, AuditService audit, Clock clock, @Value("${app.promotions.free-until:}") String freeUntil) {
+			PromoImageStorage images, AuditService audit, Clock clock, @Value("${app.promotions.free-until:}") String freeUntil,
+			Notifier notifier) {
+		this.notifier = notifier;
 		this.jdbc = jdbc;
 		this.members = members;
 		this.blocks = blocks;
@@ -257,19 +263,28 @@ public class PromotionService {
 	@Transactional
 	public AdminPromotionRow approve(UUID id, Actor actor) {
 		decide(id, "IN_REVIEW", "APPROVED", null, actor, "promotion.approved", "Approved a promotion");
-		return forOne(id);
+		return tell(forOne(id), "Your promotion is approved", null);
 	}
 
 	@Transactional
 	public AdminPromotionRow reject(UUID id, String note, Actor actor) {
 		decide(id, "IN_REVIEW", "REJECTED", note.strip(), actor, "promotion.rejected", "Sent a promotion back");
-		return forOne(id);
+		return tell(forOne(id), "Your promotion needs a change", note.strip());
 	}
 
 	@Transactional
 	public AdminPromotionRow takeDown(UUID id, String note, Actor actor) {
 		decide(id, "APPROVED", "TAKEN_DOWN", note.strip(), actor, "promotion.taken_down", "Took a promotion down");
-		return forOne(id);
+		return tell(forOne(id), "Your promotion was taken down", note.strip());
+	}
+
+	/** Lets the owner know what our team decided, with our note when there is one. */
+	private AdminPromotionRow tell(AdminPromotionRow row, String title, String note) {
+		String headline = "\"" + row.promotion().card().title() + "\"";
+		notifier.send(row.owner().id(), Notice.account("megaphone", title,
+				note == null ? headline + " runs on the dates you chose." : headline + ": " + note,
+				"/promotions/" + row.promotion().card().id()));
+		return row;
 	}
 
 	/** Viewing counts older than a week go (they're only for the daily limit). */

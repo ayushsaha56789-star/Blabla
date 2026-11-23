@@ -1,0 +1,11 @@
+# Build context for deploy/web.Dockerfile (the repository root): only the frontend and the Caddyfile are needed.
+.git
+**/node_modules
+**/dist
+**/.angular
+backend
+docs
+scripts
+deploy/.env
+deploy/backups
+**/.env

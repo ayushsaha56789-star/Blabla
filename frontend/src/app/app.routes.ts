@@ -218,6 +218,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/community/event-page').then((m) => m.EventPage),
   },
   {
+    path: 'notifications',
+    title: 'Notifications · SaathChalo',
+    canActivate: [authGuard, featureGuard('notifications')],
+    loadComponent: () => import('./features/notifications/notifications-page').then((m) => m.NotificationsPage),
+  },
+  {
     path: 'promotions',
     title: 'Promotions · SaathChalo',
     canActivate: [authGuard, featureGuard('promotions')],

@@ -5,6 +5,7 @@ import { filter } from 'rxjs';
 import { AuthService } from '../core/auth.service';
 import { FEATURE_PAGES } from '../core/feature-pages';
 import { FeaturesService } from '../core/features.service';
+import { I18nService } from '../core/i18n.service';
 import { ThemeService } from '../core/theme.service';
 import { TripsService } from '../core/trips.service';
 import { Avatar } from '../shared/avatar';
@@ -31,6 +32,7 @@ export class Navbar {
   protected readonly theme = inject(ThemeService);
   protected readonly features = inject(FeaturesService);
   protected readonly trips = inject(TripsService);
+  protected readonly i18n = inject(I18nService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   protected readonly mobileOpen = signal(false);

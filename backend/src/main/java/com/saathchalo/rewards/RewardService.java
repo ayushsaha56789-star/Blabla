@@ -3,6 +3,8 @@ package com.saathchalo.rewards;
 import com.saathchalo.audit.Actor;
 import com.saathchalo.common.ApiException;
 import com.saathchalo.features.FeatureService;
+import com.saathchalo.notifications.Notice;
+import com.saathchalo.notifications.Notifier;
 import com.saathchalo.payments.WalletService;
 import com.saathchalo.rewards.RewardDtos.Board;
 import com.saathchalo.rewards.RewardDtos.BoardRow;
@@ -65,12 +67,15 @@ public class RewardService {
 
 	private final Clock clock;
 
+	private final Notifier notifier;
+
 	private final long referralPaise;
 
 	private final SecureRandom random = new SecureRandom();
 
 	public RewardService(RideLookup rides, MemberProfiles members, BlockService blocks, WalletService wallets, FeatureService features,
-			JdbcTemplate jdbc, Clock clock, @Value("${app.rewards.referral-credit-paise:5000}") long referralPaise) {
+			JdbcTemplate jdbc, Clock clock, @Value("${app.rewards.referral-credit-paise:5000}") long referralPaise, Notifier notifier) {
+		this.notifier = notifier;
 		this.rides = rides;
 		this.members = members;
 		this.blocks = blocks;
@@ -201,6 +206,12 @@ public class RewardService {
 		}
 		wallets.grantCredits(friend, referralPaise, "Welcome reward: you joined with a friend's invite", Actor.SYSTEM);
 		wallets.grantCredits(inviter, referralPaise, "Invite reward: your friend took their first ride", Actor.SYSTEM);
+		String rupees = "₹" + referralPaise / 100;
+		notifier.send(friend, Notice.reward("trophy", "You got " + rupees + " in SaathChalo credits",
+				"A welcome reward for joining with " + members.card(inviter).displayName() + "'s invite. Use it on your next ride.",
+				"/wallet"));
+		notifier.send(inviter, Notice.reward("trophy", "You got " + rupees + " in SaathChalo credits",
+				members.card(friend).displayName() + " took their first ride. Thanks for inviting them!", "/wallet"));
 		log.info("Referral rewarded: member {} invited by {}", friend, inviter);
 		return true;
 	}

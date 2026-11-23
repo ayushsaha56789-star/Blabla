@@ -1,6 +1,8 @@
 package com.saathchalo.config;
 
+import com.saathchalo.common.RateLimiter;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -28,7 +30,9 @@ public class SecurityConfig {
 
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http, StaffSessionPort staffSessions,
-			AccountStatusPort accounts, ObjectMapper json) throws Exception {
+			AccountStatusPort accounts, ObjectMapper json, RateLimiter limiter,
+			@Value("${app.limits.visitor-requests-per-minute:600}") int visitorRequestsPerMinute,
+			@Value("${app.limits.member-changes-per-minute:120}") int memberChangesPerMinute) throws Exception {
 		http
 			// Stateless API: the access token travels in the Authorization header, and the
 			// refresh-token cookie is SameSite=Strict, so classic CSRF protection is not needed.
@@ -64,7 +68,9 @@ public class SecurityConfig {
 				.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 				.anyRequest().authenticated())
 			.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(new SaathChaloJwtConverter(staffSessions))))
-			.addFilterAfter(new AccountStatusFilter(accounts, json), BearerTokenAuthenticationFilter.class);
+			.addFilterAfter(new AccountStatusFilter(accounts, json), BearerTokenAuthenticationFilter.class)
+			.addFilterAfter(new RequestLimitFilter(limiter, json, visitorRequestsPerMinute, memberChangesPerMinute),
+					AccountStatusFilter.class);
 		return http.build();
 	}
 

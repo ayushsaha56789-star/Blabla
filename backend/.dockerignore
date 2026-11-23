@@ -1,0 +1,6 @@
+target
+data
+application-local.properties
+*.log
+.idea
+.vscode
