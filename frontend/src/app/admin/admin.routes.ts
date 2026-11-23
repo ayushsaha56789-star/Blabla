@@ -63,6 +63,12 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./pages/rentals').then((m) => m.RentalsAdminPage),
       },
       {
+        path: 'promotions',
+        title: 'Promotions · Staff console',
+        canActivate: [permissionGuard('content.moderate')],
+        loadComponent: () => import('./pages/promotions').then((m) => m.PromotionsAdminPage),
+      },
+      {
         path: 'events',
         title: 'Events · Staff console',
         canActivate: [permissionGuard('content.moderate')],

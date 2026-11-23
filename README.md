@@ -17,8 +17,8 @@ Built with **Java 25 + Spring Boot 4** (backend) and **Angular 22 + Tailwind CSS
 | 7. Driver partners | Licensed drivers sign up with their areas and prices; members hire one for their own car, with a start code, SOS and ratings | ✅ Done |
 | 8. Games | Chess and ludo, free: against the computer, with friends, quick match, with co-travellers; ratings and a leaderboard | ✅ Done |
 | 9. Gen-Z layer | My journey (XP, levels, badges, streaks, CO₂ saved, share card), invite rewards, squads, event rides, vibe match, eco leaderboard | ✅ Done |
-| 10. Promotions | Members promote their business (free for the first month after launch) | Next |
-| 11 | Launch: Hindi, notifications, hardening, deployment | Planned — see the architecture doc |
+| 10. Promotions | Members promote a business or project to chosen towns (checked by staff, clearly marked Sponsored, at most 3 times a day); free during the launch offer | ✅ Done |
+| 11. Launch | Hindi, notifications, hardening, deployment | Next — see the architecture doc |
 
 ## Run it locally
 
@@ -130,6 +130,16 @@ Each has its own switch (console → Feature switches → **Rewards**, **Squads 
 - **Events:** staff add concerts, fests and matches in the console (**Events**). Each event page lists rides that stop within 25 km of it in the two days before, and has **Offer a ride there**.
 - **Vibe match:** members pick interests on their profile. Ride search then shows a "% vibe" score for each driver, from chat style, music, smoking, pets and shared interests (never the answers themselves).
 
+## Promotions (try it)
+
+Promotions are **off** until you switch them on (console → Feature switches → **Promotions**). Under it, **Create promotions**, **Promotions in search** and **Promotions in game lobbies** can be turned off one by one.
+
+- **Promote your business** (`/promotions`, or **Explore → Promote your business**): members with a confirmed email or an approved ID write a short promotion (business name, headline, a few words, an optional https link, a category and a picture), choose up to 10 towns or all of India and up to 30 days, then **Send for checking**. A live preview shows exactly what members will see.
+- **Automatic checks** refuse betting and money games, alcohol, tobacco, adult content, weapons and promises of guaranteed returns or cures, and links that are not plain https addresses (no link shorteners). Staff also see warnings such as "Phone number in the text".
+- **Where members see them:** the **Discover** tab on `/promotions`, one card between ride search results (towns on the searched route) and one on the games page. Each card says **Sponsored**. A member sees a promotion at most 3 times a day and never sees their own; blocked members' promotions are hidden.
+- **Numbers for the owner of a promotion:** views, clicks and the share who clicked, never who saw it.
+- **Free launch offer:** promotions are free up to and including the date in `PROMOTIONS_FREE_UNTIL` (blank = free; set it to one month after launch). After that date new promotions can't be sent until paid promotions (with GST invoices) are built; drafts can still be saved.
+
 ## The staff console (`/admin`)
 
 1. Log in with the number from step 2. You become **super admin** automatically (only when no super admin exists yet).
@@ -148,6 +158,7 @@ What you can do there:
 - **Payments** — what's held for upcoming trips, owed to drivers and given as credits, with three health checks (the ledger balances, wallets match it, held money matches open payments); every payment and refund (failed refunds can be retried); **Payouts** to drivers. A member's page shows their wallet and lets refund-handling staff give goodwill credits.
 - **Rentals** — check new car listings (photos, RC and insurance; every document view is recorded) and approve or send them back; settle disputes about charges after a return; see every rental and cancel one if needed (everything is refunded).
 - **Events** — add events (title, venue, town, start time) that members can find rides to; change or cancel them.
+- **Promotions** — check members' promotions (with a preview and the automatic warnings) and approve them or send them back with a note; take a live one down with a reason the member sees. The dashboard shows how many are waiting.
 - **Drivers** — check new driver partners (licence details, areas, prices, optional police certificate) and approve them or send them back; take a live driver off the road (their upcoming trips are cancelled and refunded); see every hired-driver trip and cancel one with a full refund.
 - **ID checks** — compare the ID photo (or driving licence) with the profile, then approve or reject with a reason. Every photo view is recorded; photos are stored encrypted and deleted 30 days after the decision (at once if a full Aadhaar number is visible).
 - **Staff** — add people (they must have logged in once) as Admin, Moderator or Support; change roles; reset two-step verification for a lost phone.
@@ -156,8 +167,8 @@ What you can do there:
 | Role | Can do |
 |---|---|
 | Super admin | Everything, including feature switches, staff, settings and driver payouts |
-| Admin | Members (incl. phone numbers), restrictions, ID checks, reports, events, SOS alerts, help requests, rentals, drivers, payments and credits, audit log |
-| Moderator | Members, restrictions, ID checks, reports, events, SOS alerts, help requests |
+| Admin | Members (incl. phone numbers), restrictions, ID checks, reports, events, promotions, SOS alerts, help requests, rentals, drivers, payments and credits, audit log |
+| Moderator | Members, restrictions, ID checks, reports, events, promotions, SOS alerts, help requests |
 | Support | Members (incl. phone numbers), SOS alerts, help requests |
 
 ## Tests
@@ -192,6 +203,7 @@ backend/                Spring Boot API, one module per feature (checked by Spri
     games/              chess and ludo rooms; rules and computer players in games/engine
     rewards/            My journey (worked out from trips), invite codes and credits, eco leaderboard
     community/          squads, event rides, vibe match
+    promotions/         members' promotions: rules, staff checks, where they're shown, views and clicks
     admin/              staff console APIs
     files/ config/ common/
   src/main/resources/db/migration/   Flyway database migrations
@@ -216,13 +228,14 @@ Set these environment variables (do not use the `dev` profile):
 | `JWT_SECRET` | Random secret, at least 32 characters |
 | `DATA_ENCRYPTION_KEY` | Base64 of 32 random bytes; encrypts 2FA secrets and other sensitive fields |
 | `SUPER_ADMIN_PHONE` | The owner's number (+91…), made super admin at first login |
-| `STORAGE_DIR` | Where profile and car photos and (encrypted) ID photos, car documents, pickup/return photos and police certificates are stored |
+| `STORAGE_DIR` | Where profile, car and promotion pictures and (encrypted) ID photos, car documents, pickup/return photos and police certificates are stored |
 | `PUBLIC_URL` | The site's address, used in links sent by text message (e.g. trip-sharing links) |
 | `CORS_ALLOWED_ORIGINS` | Only if the web app is served from a different domain than the API |
 | `LEGAL_COMPANY`, `GRIEVANCE_OFFICER`, `GRIEVANCE_EMAIL`, `LEGAL_ADDRESS` | Shown on the Grievance officer page (the IT Rules 2021 ask for them) |
 | `PAYMENTS_PROVIDER` | `none` (default: online payments off) or `razorpay`. (`fake` works only in development and tests.) |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | From the Razorpay dashboard (required with `razorpay`) |
 | `RAZORPAYX_ACCOUNT_NUMBER` | Optional: lets staff send drivers payout links (RazorpayX). Without it, payouts are recorded by hand |
+| `PROMOTIONS_FREE_UNTIL` | Last day (YYYY-MM-DD) of the free promotions offer; blank = free. Set it to one month after launch |
 
 A real SMS provider (MSG91 or Twilio) and a real email provider replace the development console senders before launch (`app.sms.provider`, `app.email.provider`).
 

@@ -102,7 +102,7 @@ Modules talk to each other only through each module's public service classes and
 | `games` | Chess, ludo, rooms, matchmaking, ratings, leaderboards | 8 ✓ |
 | `rewards` | XP, levels, badges, streaks, challenges, referrals | 9 ✓ |
 | `community` | Squads (college, office and friend groups), event rides, vibe match | 9 ✓ |
-| `promotions` | Business profiles, sponsored posts, review, billing, statistics | 10 |
+| `promotions` | Members' promotions: rules and automatic checks, staff review, where they're shown, views and clicks (billing later) | 10 ✓ |
 | `admin` | Admin APIs; they call the other modules' public services | 2 onwards |
 
 Rules: each module owns its tables. Other modules refer to that data by ID only and never read those tables directly. A Spring Modulith test fails the build if one module reaches into another module's internals.
@@ -181,7 +181,7 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
 | Rentals and drivers | `rentals`, `rentals.self_drive`, `rentals.with_driver`, `rentals.instant_book`, `rentals.unverified`, `drivers`, `drivers.register`, `drivers.hire` |
 | Games | `games`, `games.chess`, `games.ludo`, `games.vs_computer`, `games.online`, `games.ride_lobby`, `games.leaderboards` |
 | Social | `rewards`, `rewards.referrals`, `community`, `community.squads`, `community.events`, `vibe_match` |
-| Promotions | `promotions`, `promotions.self_serve`, `promotions.in_search`, `promotions.in_games`, plus the setting "free promotions until" for the launch offer |
+| Promotions | `promotions`, `promotions.self_serve`, `promotions.in_search`, `promotions.in_games`; the free launch offer ends on `PROMOTIONS_FREE_UNTIL` |
 
 **How switches are enforced**
 
@@ -298,15 +298,21 @@ Each switch stores: on/off, audience, a description, and who changed it last (al
 
 Anti-abuse: rewards come only from trips the rides module marks completed, and the invite reward needs a ride with someone other than the inviter. Device and payment checks against fake accounts come with launch hardening (Phase 11).
 
-### 7.8 Promotions: members promote their business (Phase 10)
+### 7.8 Promotions: members promote their business (Phase 10, built)
 
-- Any verified member, driver or passenger, can create a **business or creator profile** and **promotions** with a picture, text, link, category, cities and dates.
-- Flow: draft → automatic checks (banned categories and words, link safety) → moderator review → payment (if paid) → live → ended. Super admin switches control whether promotions run, where they appear and what they cost.
-- **Launch offer:** promotions are free for the first month after public launch (the super admin setting "free promotions until"), but are still reviewed before they go live.
-- Where they appear: the Discover feed, between search results, on the screen after a ride, and optionally in game lobbies. Always labelled **Sponsored**, with limits on how often the same member sees them, and never inside chats.
-- Targeting by city and broad interest only, never by sensitive data. Advertisers see totals (views, clicks), never who saw their promotion.
-- Not allowed: betting and money games, alcohol, tobacco, adult content, weapons, misleading claims, and anything against the ASCI code.
-- Paid promotions get GST invoices.
+| Part | As built |
+|---|---|
+| Who | Any member with a confirmed email or an approved ID, driver or passenger. Each promotion carries its business or project name (no separate business profile page yet). Up to 5 running or waiting at a time |
+| What | Business name, headline (80 characters), text (300), optional https link, one of ten categories, a picture (re-encoded on the server like car photos: at most 1600 px, location data removed, served with `nosniff`), up to 10 towns or all of India, and dates: up to 30 days, starting within 60 days |
+| Flow | Draft → **Send for checking**: automatic checks refuse betting and money games, alcohol, tobacco, adult content, weapons and promises of guaranteed returns or cures (whole words), links that are not plain https or use shorteners, IP addresses or user names, and bad dates or towns → waiting, with warnings for staff ("Headline in capitals", "Phone number in the text", "Many exclamation marks") → staff approve or send back with a note (`content.moderate`, audited) → live between its dates → ended. The member can stop it; staff can take it down with a reason the member sees. Changing a promotion sends it back to draft, so changed text is always checked again |
+| Where it shows | The Discover tab on `/promotions` (the member's profile town), one card between ride search results (towns on the searched route) and one on the games page. Each place has its own switch. Always labelled **Sponsored**; links open in a new tab with `rel="sponsored noopener noreferrer"`. Never in chats or inside a game |
+| How often | At most 3 times a day per member per promotion, in random order; never the member's own; hidden between members who blocked each other. Showing a card counts as a view |
+| Statistics | Totals only: views, clicks and the share who clicked, never who saw it. A click counts once a day, and only after the card was shown that day. The per-member daily rows behind the 3-a-day limit are deleted after 7 days |
+| Launch offer | Free up to and including `app.promotions.free-until` (`PROMOTIONS_FREE_UNTIL`, India time; blank = free). After it, promotions can't be sent for checking ("paid promotions are coming soon") until paid promotions are built |
+
+Targeting is by town only, never by sensitive data. Not allowed: betting and money games, alcohol, tobacco, adult content, weapons, misleading claims, and anything against the ASCI code (staff check this; the word lists only catch the obvious cases).
+
+Later: paid promotions through `payments.PayableKind` with GST invoices (a chartered accountant confirms the rates first), a card on the screen after a ride, interest-based targeting from vibe-match interests, and business profile pages.
 
 ### 7.9 Notifications (Phases 4 and 11)
 
@@ -374,6 +380,8 @@ The table is the reference for that later work.
 | In-game chat (set phrases and emojis) | 7 days | Deleted |
 | Invite code, leaderboard nickname, squads joined, interests | Until the account is erased | Deleted; the member leaves every squad |
 | Games and ratings | Until the account is erased | Ratings deleted; seats in past games become "Former member" |
+| Promotions and their pictures | Until the member deletes them or the account is erased | Deleted |
+| Who saw a promotion on which day (for the 3-a-day limit) | 7 days | Deleted; only the totals stay on the promotion |
 | Help requests | Until the account is erased | Deleted |
 | Security logs | At least 1 year | Deleted |
 | Payments, refunds, payouts and the ledger | As tax law requires (about 8 years); kept after an account is erased, pointing to the anonymised account | Archived |
@@ -435,7 +443,7 @@ frontend/src/app/
 | 7 ✓ | **Driver partners**: licensed drivers register with their service areas; members hire a driver for their own car or a rental | Done |
 | 8 ✓ | **Games**: chess and ludo (computer, friends, quick match, ride lobby), leaderboards | Done |
 | 9 ✓ | **Gen-Z layer**: XP, badges, streaks, referrals, CO₂ card, squads, events, vibe match | Done |
-| 10 | **Promotions marketplace** (free for the first month after launch) | 3–4 |
+| 10 ✓ | **Promotions**: members promote a business to chosen towns, staff checks, Sponsored cards in Discover, search and games, views and clicks (free during the launch offer) | Done |
 | 11 | **Launch**: Hindi, notifications, security hardening, fixes from an external penetration test, monitoring, deployment | 4–5 |
 
 That is about 36–46 working sessions in total: roughly 2.5 to 3 months of steady work. Some non-coding steps take time in parallel: Razorpay KYC, SMS DLT registration, a KYC provider account, legal review and hosting.

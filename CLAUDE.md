@@ -32,8 +32,8 @@ The full architecture, roadmap and the owner's decisions are in **`docs/ARCHITEC
 | 7 | Driver partners: licensed drivers with service areas, hire a driver | Done |
 | 8 | Games: chess and ludo, free | Done |
 | 9 | Gen-Z layer: XP, badges, referrals, squads, events, vibe match | Done |
-| 10 | Promotions marketplace (free for the first month after launch) | Next |
-| 11 | Launch: Hindi, notifications, hardening, deployment | Planned |
+| 10 | Promotions: members promote a business, staff checks, Sponsored cards (free during the launch offer) | Done |
+| 11 | Launch: Hindi, notifications, hardening, deployment | Next |
 
 ## Stack and commands
 
@@ -48,7 +48,7 @@ The full architecture, roadmap and the owner's decisions are in **`docs/ARCHITEC
 
 ## Conventions
 
-- Backend is package-by-feature under `com.saathchalo` (`auth`, `user`, `access`, `features`, `audit`, `admin`, `geo`, `vehicles`, `rides`, `chat`, `reviews`, `safety`, `moderation`, `support`, `privacy`, `verification`, `payments`, `rentals`, `drivers`, `games`, `rewards`, `community`, `files`, `config`, `common`); Spring Modulith's test fails the build if a module reaches into another module's `internal` package. Controllers stay thin; services hold the logic and transactions; request/response types are records in `*Dtos.java`.
+- Backend is package-by-feature under `com.saathchalo` (`auth`, `user`, `access`, `features`, `audit`, `admin`, `geo`, `vehicles`, `rides`, `chat`, `reviews`, `safety`, `moderation`, `support`, `privacy`, `verification`, `payments`, `rentals`, `drivers`, `games`, `rewards`, `community`, `promotions`, `files`, `config`, `common`); Spring Modulith's test fails the build if a module reaches into another module's `internal` package. Controllers stay thin; services hold the logic and transactions; request/response types are records in `*Dtos.java`.
 - Errors: throw `ApiException` with a stable `code` and a friendly message; the API answers with RFC 9457 problem details.
 - Spring Boot 4 uses Jackson 3: optional true/false fields in request records must be `Boolean`, not `boolean`, or a missing field fails the whole request.
 - Database changes only through a **new** Flyway migration `V<n>__description.sql`. Never edit one that has already run.

@@ -33,6 +33,7 @@ import { PayoutView, WalletView } from '../core/payments-api';
 import { AdminListingRow, RentalView } from '../core/rentals-api';
 import { AdminDriverRow, TripView } from '../core/drivers-api';
 import { EventCard } from '../core/social-api';
+import { AdminPromotionRow } from '../core/promotions-api';
 
 /** Calls to the staff console API. Console tokens and 2FA confirmations are added by adminInterceptor. */
 @Injectable({ providedIn: 'root' })
@@ -166,6 +167,12 @@ export class AdminApi {
   }
   cancelRental(id: string) {
     return firstValueFrom(this.http.post<RentalView>(`/api/admin/rentals/bookings/${encodeURIComponent(id)}/cancel`, null));
+  }
+  promotions(status: 'IN_REVIEW' | 'LIVE' | 'ALL') {
+    return firstValueFrom(this.http.get<AdminPromotionRow[]>('/api/admin/promotions', { params: new HttpParams().set('status', status) }));
+  }
+  promotionAction(id: string, action: 'approve' | 'reject' | 'take-down', note: string | null) {
+    return firstValueFrom(this.http.post<AdminPromotionRow>(`/api/admin/promotions/${encodeURIComponent(id)}/${action}`, note ? { note } : null));
   }
   events() {
     return firstValueFrom(this.http.get<EventCard[]>('/api/admin/events'));

@@ -8,6 +8,8 @@ import { addDays, dayOf, duration, rupees } from '../../core/rides-format';
 import { SearchResponse, SearchResult } from '../../core/rides.models';
 import { RidesApi } from '../../core/rides-api';
 import { SocialApi } from '../../core/social-api';
+import { PromoCard, PromotionsApi } from '../../core/promotions-api';
+import { SponsoredCard } from '../../shared/sponsored-card';
 import { todayIso } from '../../core/util';
 import { Avatar } from '../../shared/avatar';
 import { Icon } from '../../shared/icon';
@@ -22,7 +24,7 @@ const optionalNumber = (v: unknown) => (v == null || v === '' ? undefined : numb
 @Component({
   selector: 'app-search-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, Icon, Avatar, RideSearchForm, Stars],
+  imports: [DatePipe, RouterLink, Icon, Avatar, RideSearchForm, Stars, SponsoredCard],
   template: `
     <div class="container-page py-6 sm:py-10">
       <h1 class="sr-only">Find a ride</h1>
@@ -156,6 +158,9 @@ const optionalNumber = (v: unknown) => (v == null || v === '' ? undefined : numb
                       </div>
                     </a>
                   </li>
+                  @if ($index === 1 || ($last && $index < 1)) {
+                    @for (p of sponsored(); track p.id) { <li><app-sponsored-card [card]="p" /></li> }
+                  }
                 } @empty {
                   <li class="card p-8 text-center sm:p-12">
                     <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
@@ -216,7 +221,9 @@ export class SearchPage {
   ];
   protected readonly result = signal<SearchResponse | null>(null);
   protected readonly vibe = signal<Record<string, number>>({});
+  protected readonly sponsored = signal<PromoCard[]>([]);
   private readonly social = inject(SocialApi);
+  private readonly promotions = inject(PromotionsApi);
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly sort = signal<Sort>('time');
@@ -278,6 +285,17 @@ export class SearchPage {
     return Math.round((Date.parse(b) - Date.parse(a)) / 60_000);
   }
 
+  /** One sponsored card for these towns, when promotions in search are on (members only). */
+  private async loadSponsored(placeIds: number[]): Promise<void> {
+    this.sponsored.set([]);
+    if (!this.features.isOn('promotions.in_search') || !this.auth.isLoggedIn()) return;
+    try {
+      this.sponsored.set(await this.promotions.feed('SEARCH', placeIds, 1));
+    } catch {
+      // Search works without it.
+    }
+  }
+
   /** Vibe scores with the drivers in the results, when vibe match is on. */
   private async loadVibe(driverIds: string[]): Promise<void> {
     if (!this.features.isOn('vibe_match') || !this.auth.isLoggedIn()) return;
@@ -297,6 +315,7 @@ export class SearchPage {
       if (no === this.requestNo) {
         this.result.set(r);
         void this.loadVibe(r.rides.map((x) => x.driver.id).filter((id): id is string => !!id));
+        void this.loadSponsored([r.from.id, r.to.id]);
       }
     } catch (e) {
       if (no === this.requestNo) {

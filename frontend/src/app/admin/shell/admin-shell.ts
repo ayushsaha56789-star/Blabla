@@ -27,6 +27,7 @@ const NAV: NavItem[] = [
   { path: '/admin/safety', label: 'SOS alerts', icon: 'shieldAlert', permission: 'support.tickets' },
   { path: '/admin/reports', label: 'Reports', icon: 'flag', permission: 'content.moderate' },
   { path: '/admin/events', label: 'Events', icon: 'calendar', permission: 'content.moderate' },
+  { path: '/admin/promotions', label: 'Promotions', icon: 'megaphone', permission: 'content.moderate' },
   { path: '/admin/support', label: 'Help requests', icon: 'chat', permission: 'support.tickets' },
   { path: '/admin/verifications', label: 'ID checks', icon: 'idCard', permission: 'verification.review' },
   { path: '/admin/rentals', label: 'Rentals', icon: 'car', permission: 'rentals.manage' },

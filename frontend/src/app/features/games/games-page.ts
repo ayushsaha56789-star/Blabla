@@ -4,15 +4,17 @@ import { Router, RouterLink } from '@angular/router';
 import { problemOf } from '../../core/errors';
 import { FeaturesService } from '../../core/features.service';
 import { Game, gamePlayers, GamesApi, GameSummary, LeaderRow, Level } from '../../core/games-api';
+import { PromoCard, PromotionsApi } from '../../core/promotions-api';
 import { ToastService } from '../../core/toast.service';
 import { Avatar } from '../../shared/avatar';
 import { Icon } from '../../shared/icon';
+import { SponsoredCard } from '../../shared/sponsored-card';
 
 /** Games: chess and ludo against the computer, with friends or a quick match; your games; the leaderboard. */
 @Component({
   selector: 'app-games-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, Avatar, Icon],
+  imports: [DatePipe, RouterLink, Avatar, Icon, SponsoredCard],
   template: `
     <section class="relative overflow-hidden bg-linear-to-br from-violet-50 via-white to-fuchsia-50 dark:from-slate-950 dark:via-slate-950 dark:to-fuchsia-950/30">
       <div class="container-page py-10 sm:py-12">
@@ -92,6 +94,8 @@ import { Icon } from '../../shared/icon';
           </section>
         }
       </div>
+
+      @for (p of sponsored(); track p.id) { <app-sponsored-card class="mt-5" [card]="p" /> }
 
       <div class="mt-8 grid gap-6 lg:grid-cols-2">
         <section aria-labelledby="mine-heading">
@@ -174,6 +178,8 @@ export class GamesPage implements OnInit {
   protected readonly boardGame = signal<Game>('CHESS');
   protected readonly board = signal<{ top: LeaderRow[]; me: LeaderRow | null } | null>(null);
   protected readonly myId = signal<string | null>(null);
+  protected readonly sponsored = signal<PromoCard[]>([]);
+  private readonly promotions = inject(PromotionsApi);
 
   async ngOnInit(): Promise<void> {
     const code = this.codeParam();
@@ -187,6 +193,7 @@ export class GamesPage implements OnInit {
     } catch {
       this.mine.set([]);
     }
+    if (this.features.isOn('promotions.in_games')) this.sponsored.set(await this.promotions.feed('GAMES', [], 1).catch(() => []));
     if (this.features.isOn('games.leaderboards')) await this.showBoard('CHESS');
   }
 

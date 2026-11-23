@@ -231,6 +231,7 @@ export interface Dashboard {
   rentalsToCheck: number;
   rentalDisputes: number;
   driversToCheck: number;
+  promotionsToReview: number;
   staffCount: number;
   featuresOn: number;
   featuresTotal: number;

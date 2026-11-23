@@ -217,6 +217,24 @@ export const routes: Routes = [
     canActivate: [authGuard, featureGuard('community')],
     loadComponent: () => import('./features/community/event-page').then((m) => m.EventPage),
   },
+  {
+    path: 'promotions',
+    title: 'Promotions · SaathChalo',
+    canActivate: [authGuard, featureGuard('promotions')],
+    loadComponent: () => import('./features/promotions/promotions-page').then((m) => m.PromotionsPage),
+  },
+  {
+    path: 'promotions/new',
+    title: 'Promote your business · SaathChalo',
+    canActivate: [authGuard, featureGuard('promotions.self_serve')],
+    loadComponent: () => import('./features/promotions/promotion-editor-page').then((m) => m.PromotionEditorPage),
+  },
+  {
+    path: 'promotions/:id',
+    title: 'Your promotion · SaathChalo',
+    canActivate: [authGuard, featureGuard('promotions.self_serve')],
+    loadComponent: () => import('./features/promotions/promotion-editor-page').then((m) => m.PromotionEditorPage),
+  },
   // "Coming soon" pages for areas the owner has switched on ahead of launch.
   ...FEATURE_PAGES.filter((p) => !p.built).map((p) => ({
     path: p.path.slice(1),

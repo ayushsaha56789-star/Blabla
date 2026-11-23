@@ -51,6 +51,16 @@
       <app-icon name="arrowRight" [size]="20" />
     </a>
   }
+  @if (d.promotionsToReview && session.can('content.moderate')) {
+    <a routerLink="/admin/promotions" class="card mt-4 flex items-center gap-4 rounded-3xl p-5 transition hover:shadow-md">
+      <app-icon name="megaphone" [size]="24" />
+      <span class="flex-1">
+        <span class="block font-extrabold">{{ d.promotionsToReview }} {{ d.promotionsToReview === 1 ? 'promotion' : 'promotions' }} to check</span>
+        <span class="block text-sm opacity-80">Check against the rules within a day; members wait for it to go live.</span>
+      </span>
+      <app-icon name="arrowRight" [size]="20" />
+    </a>
+  }
   @if (d.driversToCheck && session.can('drivers.manage')) {
     <a routerLink="/admin/drivers" class="card mt-4 flex items-center gap-4 rounded-3xl p-5 transition hover:shadow-md">
       <app-icon name="steering" [size]="24" />

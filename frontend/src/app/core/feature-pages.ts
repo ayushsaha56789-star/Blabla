@@ -94,13 +94,14 @@ export const FEATURE_PAGES: readonly FeaturePage[] = [
   {
     key: 'promotions',
     path: '/promotions',
+    built: true,
     label: 'Promote your business',
     icon: 'megaphone',
     tagline: 'Reach thousands of travellers in your city.',
     points: [
-      'Create a business or creator profile',
       'Promote your shop, service or project — clearly marked Sponsored',
-      'Choose your cities and see how many people you reached',
+      'Choose your towns and dates, and see how many people saw and tapped it',
+      'Every promotion is checked by our team before it goes live',
       'Free for the first month after launch',
     ],
     gradient: 'from-lime-500 to-green-600',

@@ -19,9 +19,24 @@ public class FileController {
 
 	private final CarPhotoStorage cars;
 
-	public FileController(AvatarStorage avatars, CarPhotoStorage cars) {
+	private final PromoImageStorage promos;
+
+	public FileController(AvatarStorage avatars, CarPhotoStorage cars, PromoImageStorage promos) {
 		this.avatars = avatars;
 		this.cars = cars;
+		this.promos = promos;
+	}
+
+	/** Pictures of approved promotions (anyone may see a sponsored card's picture). */
+	@GetMapping("/promos/{fileName}")
+	public ResponseEntity<Resource> promo(@PathVariable String fileName) {
+		return promos.find(fileName)
+			.<ResponseEntity<Resource>>map(path -> ResponseEntity.ok()
+				.contentType(MediaType.IMAGE_JPEG)
+				.cacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable())
+				.header("X-Content-Type-Options", "nosniff")
+				.body(new FileSystemResource(path)))
+			.orElseGet(() -> ResponseEntity.notFound().build());
 	}
 
 	/** Avatar file names are unique per upload, so browsers may cache them forever. */

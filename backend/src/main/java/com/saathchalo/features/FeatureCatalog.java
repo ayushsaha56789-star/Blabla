@@ -99,14 +99,14 @@ public final class FeatureCatalog {
 			def("vibe_match", null, "social", "Vibe match", "A match score from chat style, music, smoking, pets and interests.",
 					9, true, false, false, false),
 
-			def("promotions", null, "promotions", "Promotions", "Members promote their business, always labelled Sponsored.",
-					10, false, false, false, false),
-			def("promotions.self_serve", "promotions", "promotions", "Create promotions", "Members create and pay for promotions.",
-					10, false, false, false, false),
-			def("promotions.in_search", "promotions", "promotions", "Promotions in search", "Sponsored posts between search results.",
-					10, false, false, false, false),
-			def("promotions.in_games", "promotions", "promotions", "Promotions in game lobbies", "Sponsored posts in game lobbies.",
-					10, false, false, false, false));
+			def("promotions", null, "promotions", "Promotions",
+					"Members promote their business, always labelled Sponsored and checked by a moderator first.", 10, true, false, false, false),
+			def("promotions.self_serve", "promotions", "promotions", "Create promotions",
+					"Members with a confirmed email or ID create promotions (free during the launch offer).", 10, true, false, false, true),
+			def("promotions.in_search", "promotions", "promotions", "Promotions in search", "One sponsored card between ride search results.",
+					10, true, false, false, true),
+			def("promotions.in_games", "promotions", "promotions", "Promotions in game lobbies", "One sponsored card on the games page.",
+					10, true, false, false, true));
 
 	private static final Map<String, FeatureDefinition> BY_KEY;
 

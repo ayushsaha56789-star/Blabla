@@ -95,6 +95,12 @@ public class MemberProfiles {
 		return users.findById(id).filter(User::isEmailVerified).map(User::getEmail);
 	}
 
+	/** The town on the member's profile, if any (for showing local promotions). */
+	@Transactional(readOnly = true)
+	public Optional<String> city(UUID id) {
+		return users.findById(id).map(User::getCity).filter(c -> c != null && !c.isBlank()).map(String::strip);
+	}
+
 	/** Several members at once (for filters such as "women drivers only"). */
 	@Transactional(readOnly = true)
 	public Map<UUID, Traveller> travellers(Collection<UUID> ids) {
